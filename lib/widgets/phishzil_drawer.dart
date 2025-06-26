@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../routers/phishzil_app_routes.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../routers/phishzil_app_routes.dart';
 import '../utils/phishzil_constants.dart';
-// Adjusted to match your import
 
 class PhishzilDrawer extends StatelessWidget {
   const PhishzilDrawer({super.key});
@@ -10,119 +9,109 @@ class PhishzilDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: const Color(0xFF0A0E21),
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // Drawer header with app name and logo
           DrawerHeader(
-            decoration: BoxDecoration(
-              color: PhishzilColors.primaryColor, // Use constant
-            ),
+            decoration: BoxDecoration(color: PhishzilColors.primaryColor),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.asset(
-                  PhishzilAssets.logo, // Use constant
-                  height: PhishzilSpacing.height, // Use constant
-                  width: PhishzilSpacing.height, // Use constant
-                  fit: BoxFit.cover,
+                Center(
+                  child: Image.asset(
+                    PhishzilAssets.loginLogo,
+                    height: 60,
+                    width: 60,
+                  ),
                 ),
-                SizedBox(height: PhishzilSpacing.padding), // Use constant
+                const SizedBox(height: 10),
                 Text(
                   'PhishZil',
                   style: GoogleFonts.poppins(
-                    // Changed to Schyler to match pubspec.yaml
                     color: Colors.white,
-                    fontSize: PhishzilSpacing.height, // Use constant
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Cybersecurity Defender",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          // Navigation items
-          ListTile(
-            leading: Icon(
-              Icons.home,
-              size: PhishzilSpacing.height,
-            ), // Use constant
-            title: Text(
-              'Home',
-              style: GoogleFonts.poppins(
-                fontSize: PhishzilSpacing.height, // Use constant
-              ),
-            ),
-            onTap: () {
-              Navigator.pushNamed(context, AppRoutes.home);
-            },
+
+          _buildTile(
+            icon: Icons.home,
+            label: 'Home',
+            onTap: () => Navigator.pushNamed(context, AppRoutes.home),
           ),
-          ListTile(
-            leading: Icon(
-              Icons.history,
-              size: PhishzilSpacing.height,
-            ), // Use constant
-            title: Text(
-              'History',
-              style: GoogleFonts.poppins(
-                fontSize: PhishzilSpacing.height, // Use constant
-              ),
-            ),
-            onTap: () {
-              Navigator.pushNamed(context, AppRoutes.history);
-            },
+          _buildTile(
+            icon: Icons.qr_code_scanner,
+            label: 'Start Scan',
+            onTap: () => Navigator.pushNamed(context, AppRoutes.scan),
           ),
-          ListTile(
-            leading: Icon(
-              Icons.settings,
-              size: PhishzilSpacing.height,
-            ), // Use constant
-            title: Text(
-              'Settings',
-              style: GoogleFonts.poppins(
-                fontSize: PhishzilSpacing.height, // Use constant
-              ),
-            ),
-            onTap: () {
-              Navigator.pushNamed(context, AppRoutes.scan);
-            },
+          _buildTile(
+            icon: Icons.history,
+            label: 'Scan History',
+            onTap: () => Navigator.pushNamed(context, AppRoutes.history),
           ),
-          ListTile(
-            leading: Icon(
-              Icons.warning_amber,
-              size: PhishzilSpacing.height,
-            ), // Use constant
-            title: Text(
-              'Test Alert',
-              style: GoogleFonts.poppins(
-                fontSize: PhishzilSpacing.height, // Use constant
-              ),
-            ),
-            onTap: () {
-              Navigator.pushNamed(context, AppRoutes.admin);
-            },
+          _buildTile(
+            icon: Icons.warning_amber,
+            label: 'Threat Alerts',
+            onTap: () => Navigator.pushNamed(context, AppRoutes.alerts),
+          ),
+          _buildTile(
+            icon: Icons.admin_panel_settings,
+            label: 'Admin Panel',
+            onTap: () => Navigator.pushNamed(context, AppRoutes.admin),
+          ),
+          _buildTile(
+            icon: Icons.settings,
+            label: 'Settings',
+            onTap: () => Navigator.pushNamed(context, AppRoutes.settings),
           ),
 
-          Divider(),
-          ListTile(
-            leading: Icon(
-              Icons.logout,
-              size: PhishzilSpacing.height,
-            ), // Use constant
-            title: Text(
-              'Logout',
-              style: GoogleFonts.poppins(
-                fontSize: PhishzilSpacing.height, // Use constant
-                color: PhishzilColors.danger, // Use constant
-              ),
-            ),
+          const Divider(color: Colors.white30),
+
+          _buildTile(
+            icon: Icons.logout,
+            label: 'Logout',
+            iconColor: PhishzilColors.danger,
+            textColor: PhishzilColors.danger,
             onTap: () {
-              print('Logout tapped - Implement backend logout here');
-              Navigator.pop(context);
-              // TODO: Add navigation to login screen or app reset
+              // TODO: Hook this to real logout logic
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRoutes.login,
+                (route) => false,
+              );
             },
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTile({
+    required IconData icon,
+    required String label,
+    Color iconColor = Colors.white,
+    Color textColor = Colors.white,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, size: 24, color: iconColor),
+      title: Text(
+        label,
+        style: GoogleFonts.poppins(fontSize: 15, color: textColor),
+      ),
+      onTap: onTap,
     );
   }
 }

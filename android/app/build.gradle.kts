@@ -8,11 +8,15 @@ plugins {
 android {
     namespace = "com.example.phishzil"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+
+    // ✅ Required NDK version for some dependencies (e.g. telephony, sms_advanced)
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // ✅ Enable Java 8+ desugaring support
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -20,11 +24,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.phishzil"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // ✅ Ensure minSdk is at least 26 for desugaring support
+        minSdk = maxOf(26, flutter.minSdkVersion)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -32,8 +34,6 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -42,3 +42,33 @@ android {
 flutter {
     source = "../.."
 }
+
+// ✅ Dependencies section for desugaring support
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+}
+
+// ✅ ADDITIONAL BUILD CONFIG BELOW
+
+// 👇 Ensure all dependencies resolve properly
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// 👇 Relocate build directories (optional but helpful in mono-repo structures)
+val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
+rootProject.layout.buildDirectory.value(newBuildDir)
+
+subprojects {
+    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+    project.layout.buildDirectory.value(newSubprojectBuildDir)
+}
+
+// ⚠️ DO NOT register "clean" again if it already exists in the root `build.gradle.kts`
+// Uncomment below ONLY if it does not already exist.
+// tasks.register<Delete>("clean") {
+//     delete(rootProject.layout.buildDirectory)
+// }

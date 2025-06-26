@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AppRoutes {
+  static const reset = '/reset';
+  static const String login = '/login';
+  static const String signup = '/signup';
   static const String home = '/';
   static const String scan = '/scan';
   static const String history = '/history';

@@ -19,7 +19,7 @@ class PhishzilColors {
 
 class PhishzilAssets {
   static const String shieldAnimation = 'assets/animations/shield.json';
-  static const String logo = 'assets/images/phishzil_logo.png';
+  static const String loginLogo = 'assets/images/sh.png';
 }
 
 class PhishzilStrings {

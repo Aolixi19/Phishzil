@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'routers/phishzil_route_generator.dart'; // ✅ FIXED import
+import 'routers/phishzil_route_generator.dart';
 
 void main() {
-  runApp(const PhishZilApp());
+  runApp(const ProviderScope(child: PhishZilApp()));
 }
 
 class PhishZilApp extends StatelessWidget {
@@ -12,15 +13,14 @@ class PhishZilApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PhishZil',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(),
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      initialRoute: '/',
-      onGenerateRoute: PhishZilRouteGenerator.generateRoute, // ✅ FIXED
+      initialRoute: '/login',
+      onGenerateRoute: PhishZilRouteGenerator.generateRoute,
     );
   }
 }
