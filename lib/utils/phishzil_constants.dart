@@ -1,3 +1,5 @@
+// ignore_for_file: sized_box_for_whitespace
+
 import 'package:flutter/material.dart';
 
 class PhishzilColors {
@@ -20,6 +22,8 @@ class PhishzilColors {
 class PhishzilAssets {
   static const String shieldAnimation = 'assets/animations/shield.json';
   static const String loginLogo = 'assets/images/sh.png';
+  static const String apple = 'assets/images/ap.png';
+  static const String google = 'assets/images/go.png';
 }
 
 class PhishzilStrings {
@@ -36,4 +40,14 @@ class PhishzilSpacing {
   static const double padding = 16.0;
   static const double cardSpacing = 10.0;
   static const double sectionSpacing = 20.0;
+}
+
+class AuthImage extends StatelessWidget {
+  final imageAsset;
+  const AuthImage({super.key, required this.imageAsset});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 50, height: 50, child: Image.asset(imageAsset));
+  }
 }

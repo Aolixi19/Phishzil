@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/phishzil_constants.dart';
-import '../providers/phishzil_auth_provider.dart'; // <-- Make sure this path is correct
+import '../providers/phishzil_auth_provider.dart';
+import '../routers/phishzil_app_routes.dart';
 
 class PhishzilSignUpPage extends ConsumerStatefulWidget {
   const PhishzilSignUpPage({super.key});
@@ -11,38 +12,60 @@ class PhishzilSignUpPage extends ConsumerStatefulWidget {
 }
 
 class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
-  final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _username = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _rememberMe = false;
+  bool _agreedToTerms = false;
+
+  String _passwordStrength = "";
 
   @override
   void dispose() {
-    _usernameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmController.dispose();
+    _username.dispose();
+    _email.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _updatePasswordStrength(String password) {
+    setState(() {
+      if (password.length < 6) {
+        _passwordStrength = "Weak";
+      } else if (password.length < 10) {
+        _passwordStrength = "Medium";
+      } else {
+        _passwordStrength = "Strong";
+      }
+    });
   }
 
-  void _handleSignup() {
+  void _showSnack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  Future<void> _handleSignUp() async {
+    if (!_agreedToTerms) {
+      _showSnack("You must agree to the Terms and Conditions", isError: true);
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
-      ref
+      await ref
           .read(authProvider.notifier)
           .signUp(
-            _usernameController.text.trim(),
-            _emailController.text.trim(),
-            _passwordController.text.trim(),
+            _username.text.trim(),
+            _email.text.trim(),
+            _password.text.trim(),
           );
     }
   }
@@ -51,12 +74,16 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
 
-    ref.listen(authProvider, (previous, next) {
+    ref.listen(authProvider, (prev, next) {
       if (next.errorMessage != null) {
-        _showSnack(next.errorMessage!);
-      } else if (next.isAuthenticated) {
-        _showSnack("Signup successful!");
-        // TODO: Navigate to home or dashboard
+        if (next.errorMessage!.contains("verify your email")) {
+          _showSnack("Signup successful! Redirecting to verify...");
+          Future.delayed(const Duration(seconds: 2), () {
+            Navigator.pushReplacementNamed(context, AppRoutes.verifyEmail);
+          });
+        } else {
+          _showSnack(next.errorMessage!, isError: true);
+        }
       }
     });
 
@@ -79,7 +106,7 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
                   Hero(
                     tag: "tag",
                     child: Image.asset(
-                      "assets/images/sh.png",
+                      PhishzilAssets.loginLogo,
                       height: 100,
                       width: 100,
                     ),
@@ -91,13 +118,6 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
                       color: Colors.lightBlueAccent,
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(1, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -114,35 +134,34 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
                         child: Column(
                           children: [
                             _buildTextField(
-                              controller: _usernameController,
+                              controller: _username,
                               label: "Username",
                               hint: "Enter your Username",
                               icon: Icons.person,
-                              validator: (value) =>
-                                  (value == null || value.trim().isEmpty)
-                                  ? "Enter a valid username"
+                              validator: (val) =>
+                                  val == null || val.trim().isEmpty
+                                  ? "Username is required"
                                   : null,
                             ),
                             const SizedBox(height: 20),
                             _buildTextField(
-                              controller: _emailController,
+                              controller: _email,
                               label: "Email",
                               hint: "Enter your Email",
                               icon: Icons.email,
-                              validator: (value) =>
-                                  (value == null || !value.contains('@'))
+                              validator: (val) =>
+                                  val == null || !val.contains('@')
                                   ? "Enter a valid email"
                                   : null,
                             ),
                             const SizedBox(height: 20),
                             _buildTextField(
-                              controller: _passwordController,
+                              controller: _password,
                               label: "Password",
                               hint: "Enter your Password",
                               icon: Icons.lock,
                               obscureText: _obscurePassword,
-                              validator: (value) =>
-                                  (value == null || value.length < 6)
+                              validator: (val) => val == null || val.length < 6
                                   ? "Min. 6 characters"
                                   : null,
                               suffixIcon: IconButton(
@@ -159,36 +178,73 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
                                 },
                               ),
                             ),
+                            const SizedBox(height: 6),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Strength: $_passwordStrength",
+                                style: TextStyle(
+                                  color: _passwordStrength == "Strong"
+                                      ? Colors.green
+                                      : _passwordStrength == "Medium"
+                                      ? Colors.orange
+                                      : Colors.red,
+                                ),
+                              ),
+                            ),
                             const SizedBox(height: 20),
                             _buildTextField(
-                              controller: _confirmController,
+                              controller: _confirmPassword,
                               label: "Confirm Password",
                               hint: "Re-enter your Password",
                               icon: Icons.lock_outline,
                               obscureText: true,
-                              validator: (value) =>
-                                  value != _passwordController.text
-                                  ? "Passwords don't match"
+                              validator: (val) => val != _password.text
+                                  ? "Passwords do not match"
                                   : null,
                             ),
                             const SizedBox(height: 15),
                             Row(
                               children: [
                                 Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (value) =>
-                                      setState(() => _rememberMe = value!),
+                                  value: _agreedToTerms,
                                   activeColor: PhishzilColors.secondary,
+                                  onChanged: (val) {
+                                    setState(
+                                      () => _agreedToTerms = val ?? false,
+                                    );
+                                  },
                                 ),
-                                const Text(
-                                  "Remember Me",
-                                  style: TextStyle(color: Colors.white),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        Navigator.pushNamed(context, "/terms"),
+                                    child: Text.rich(
+                                      TextSpan(
+                                        text: "I agree to the ",
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: "Terms & Conditions",
+                                            style: TextStyle(
+                                              color: PhishzilColors.secondary,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 15),
+                            const SizedBox(height: 10),
                             GestureDetector(
-                              onTap: auth.isLoading ? null : _handleSignup,
+                              onTap: auth.isLoading ? null : _handleSignUp,
                               child: Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(
@@ -224,9 +280,12 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 3.0),
+                  const SizedBox(height: 10),
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pushReplacementNamed(
+                      context,
+                      AppRoutes.login,
+                    ),
                     child: Text(
                       "Already have an account? Login",
                       style: TextStyle(
@@ -257,6 +316,9 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
+      onChanged: label == "Password"
+          ? (val) => _updatePasswordStrength(val)
+          : null,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,

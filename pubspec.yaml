@@ -44,10 +44,15 @@ dependencies:
   telephony: ^0.2.0
   flutter_riverpod: ^2.5.1
   flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+  firebase_auth: ^4.20.0
+  firebase_messaging: ^14.7.17
+  firebase_core: ^2.30.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  cloud_firestore: ^4.17.5
 
 dev_dependencies:
   flutter_test:
@@ -80,8 +85,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/animations/shield.json
-    - assets/images/sh.png
+    - assets/animations/
+    - assets/images/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Represents the current state of authentication.
 class AuthState {
@@ -37,63 +39,143 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState.initial());
 
-  /// Simulates a sign-up process (connect to your backend here).
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  /// Sign up with Firebase Auth and send verification email
   Future<void> signUp(String username, String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Simulate sign-up success (replace with real API call)
-      final isSuccessful = email.contains('@') && password.length >= 6;
-
-      if (isSuccessful) {
-        state = state.copyWith(isAuthenticated: true, isLoading: false);
-      } else {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: 'Signup failed: Invalid credentials',
-        );
-      }
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Signup failed: ${e.toString()}',
+      // Create Firebase user
+      await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
+
+      // Set display name
+      await _auth.currentUser?.updateDisplayName(username);
+
+      // Send email verification
+      await _auth.currentUser?.sendEmailVerification();
+
+      // Store locally for login with username
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("username", username);
+      await prefs.setString("email", email);
+
+      state = state.copyWith(
+        isAuthenticated: false,
+        isLoading: false,
+        errorMessage:
+            "Signup successful! Please verify your email before login.",
+      );
+    } on FirebaseAuthException catch (e) {
+      final error = e.code == 'email-already-in-use'
+          ? 'Account already exists. Please login.'
+          : e.message ?? 'Signup failed.';
+      state = state.copyWith(isLoading: false, errorMessage: error);
     }
   }
 
-  /// Simulates a login process (replace with backend logic).
-  Future<void> login(String email, String password) async {
+  /// Login with email or username and check verification
+  Future<void> login(
+    String identifier,
+    String password,
+    bool rememberMe,
+  ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      await Future.delayed(const Duration(seconds: 2));
+      final prefs = await SharedPreferences.getInstance();
+      String? email = identifier;
 
-      // Simulate login logic — update this block with actual logic
-      if (email == "admin@phishzil.com" && password == "123456") {
-        state = state.copyWith(isAuthenticated: true, isLoading: false);
-      } else {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: "Login failed: Invalid email or password",
+      // Handle login with username
+      if (!identifier.contains("@")) {
+        final savedUsername = prefs.getString("username");
+        if (savedUsername == identifier) {
+          email = prefs.getString("email");
+        } else {
+          throw FirebaseAuthException(
+            code: "user-not-found",
+            message: "Username not found.",
+          );
+        }
+      }
+
+      // Sign in with email
+      await _auth.signInWithEmailAndPassword(email: email!, password: password);
+
+      // Check if email is verified
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await _auth.signOut();
+        throw FirebaseAuthException(
+          code: "email-not-verified",
+          message: "Please verify your email before logging in.",
         );
       }
-    } catch (e) {
+
+      // Store remember me
+      if (rememberMe) {
+        await prefs.setBool("remember_me", true);
+        await prefs.setString("saved_email", email);
+        await prefs.setString("saved_password", password);
+      } else {
+        await prefs.setBool("remember_me", false);
+        await prefs.remove("saved_email");
+        await prefs.remove("saved_password");
+      }
+
+      state = state.copyWith(isAuthenticated: true, isLoading: false);
+    } on FirebaseAuthException catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Login failed: ${e.toString()}',
+        errorMessage: e.message ?? "Login failed.",
       );
     }
   }
 
-  /// Logs out the user and resets the state.
-  void logout() {
+  /// Try to auto-login from saved credentials
+  Future<void> tryAutoLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final remember = prefs.getBool("remember_me") ?? false;
+
+    if (remember) {
+      final email = prefs.getString("saved_email");
+      final password = prefs.getString("saved_password");
+
+      if (email != null && password != null) {
+        await login(email, password, true);
+      }
+    }
+  }
+
+  /// Logout and clear local storage
+  Future<void> logout() async {
+    await _auth.signOut();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool("remember_me", false);
+    await prefs.remove("saved_email");
+    await prefs.remove("saved_password");
+
     state = AuthState.initial();
+  }
+
+  /// Send verification email again
+  Future<void> resendVerificationEmail() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+    } catch (_) {
+      // Optionally handle errors
+    }
   }
 }
 
-/// Global Riverpod provider for the authentication state.
+/// Riverpod provider for global access
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();
 });

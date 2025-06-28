@@ -10,10 +10,14 @@ import '../screens/phishzil_settings_screen.dart';
 import '../screens/phish_login_screen.dart';
 import '../screens/phish_signup_screen.dart';
 import '../screens/phishzil_password_reset_screen.dart';
+import '../screens/phishzil_splash_page.dart';
+import '../screens/phishzil_terms_page.dart';
 
 class PhishZilRouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case '/splash':
+        return MaterialPageRoute(builder: (_) => const PhishzilSplashPage());
       case '/':
         return MaterialPageRoute(builder: (_) => const PhishzilHomeScreen());
       case '/scan':
@@ -32,10 +36,14 @@ class PhishZilRouteGenerator {
         return MaterialPageRoute(
           builder: (_) => const PhishzilPasswordResetScreen(),
         );
+      case '/verify-email':
+        return MaterialPageRoute(builder: (_) => const PhishzilSignUpPage());
       case '/settings':
         return MaterialPageRoute(
           builder: (_) => const PhishzilSettingsScreen(),
         );
+      case '/terms':
+        return MaterialPageRoute(builder: (_) => const PhishzilTermsPage());
       default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(

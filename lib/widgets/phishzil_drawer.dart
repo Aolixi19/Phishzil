@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../routers/phishzil_app_routes.dart';
 import '../utils/phishzil_constants.dart';
+import '../providers/phishzil_auth_provider.dart';
+import '../providers/phishzil_auth_storage.dart';
 
-class PhishzilDrawer extends StatelessWidget {
+class PhishzilDrawer extends ConsumerWidget {
   const PhishzilDrawer({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Drawer(
       backgroundColor: const Color(0xFF0A0E21),
       child: ListView(
@@ -84,8 +88,14 @@ class PhishzilDrawer extends StatelessWidget {
             label: 'Logout',
             iconColor: PhishzilColors.danger,
             textColor: PhishzilColors.danger,
-            onTap: () {
-              // TODO: Hook this to real logout logic
+            onTap: () async {
+              // ✅ Clear stored credentials
+              await AuthStorage.clearCredentials();
+
+              // ✅ Reset auth state
+              ref.read(authProvider.notifier).logout();
+
+              // ✅ Navigate to login screen and prevent back navigation
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 AppRoutes.login,
