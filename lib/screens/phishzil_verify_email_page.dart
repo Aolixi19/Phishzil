@@ -1,207 +1,229 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/phishzil_auth_provider.dart';
 import '../routers/phishzil_app_routes.dart';
-import '../utils/phishzil_constants.dart';
 
-class PhishzilVerifyEmailPage extends StatefulWidget {
-  const PhishzilVerifyEmailPage({super.key});
+class VerifyEmailCodeScreen extends ConsumerStatefulWidget {
+  const VerifyEmailCodeScreen({super.key});
 
   @override
-  State<PhishzilVerifyEmailPage> createState() =>
-      _PhishzilVerifyEmailPageState();
+  ConsumerState<VerifyEmailCodeScreen> createState() =>
+      _VerifyEmailCodeScreenState();
 }
 
-class _PhishzilVerifyEmailPageState extends State<PhishzilVerifyEmailPage> {
-  bool _isSending = false;
-  bool _checkingVerification = false;
-  int _cooldown = 0;
-  Timer? _timer;
+class _VerifyEmailCodeScreenState extends ConsumerState<VerifyEmailCodeScreen>
+    with TickerProviderStateMixin {
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  final user = FirebaseAuth.instance.currentUser;
+  bool _isLoading = false;
+  bool _isSuccess = false;
+
+  late final AnimationController _animationController;
+  late final Animation<double> _scaleAnimation;
+
+  String get _enteredCode => _controllers.map((c) => c.text).join();
 
   @override
   void initState() {
     super.initState();
-    _startVerificationAutoCheck();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(_animationController);
   }
 
-  void _startCooldown() {
-    setState(() => _cooldown = 60);
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_cooldown == 0) {
-        timer.cancel();
-      } else {
-        setState(() => _cooldown--);
-      }
-    });
-  }
-
-  void _startVerificationAutoCheck() {
-    Timer.periodic(const Duration(seconds: 4), (timer) async {
-      await user?.reload();
-      if (user?.emailVerified == true) {
-        timer.cancel();
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      }
-    });
-  }
-
-  Future<void> _resendEmailVerification() async {
-    setState(() => _isSending = true);
-    try {
-      await user?.sendEmailVerification();
-      _startCooldown();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Verification email sent. Check your inbox."),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to send email: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+  Future<void> _onCodeChanged(int index, String value) async {
+    if (value.length == 1 && index < 5) {
+      _focusNodes[index + 1].requestFocus();
     }
-    setState(() => _isSending = false);
+    if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+
+    if (_enteredCode.length == 6 && !_isLoading && !_isSuccess) {
+      await _verifyCode();
+    }
   }
 
-  Future<void> _checkVerificationAndProceed() async {
-    setState(() => _checkingVerification = true);
-    await user?.reload();
-    if (user?.emailVerified == true) {
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+  Future<void> _verifyCode() async {
+    setState(() => _isLoading = true);
+
+    final result = await ref
+        .read(authProvider.notifier)
+        .verifyCode(_enteredCode);
+
+    setState(() {
+      _isLoading = false;
+      _isSuccess = result;
+    });
+
+    if (result) {
+      HapticFeedback.mediumImpact();
+      _animationController.forward();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Email Verified Successfully!")),
+      );
+
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+      }
     } else {
+      HapticFeedback.vibrate();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Email not verified yet."),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text("❌ Invalid or expired code")),
       );
     }
-    setState(() => _checkingVerification = false);
   }
 
-  Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
+  Future<void> _resendCode() async {
+    setState(() => _isLoading = true);
+
+    final result = await ref
+        .read(authProvider.notifier)
+        .resendVerificationCode();
+
+    setState(() => _isLoading = false);
+
+    if (result) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("📩 New verification code sent.")),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("⚠️ Failed to resend code")));
+    }
+  }
+
+  Future<void> _handlePaste() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    final code = clipboardData?.text?.replaceAll(RegExp(r'\D'), '') ?? '';
+
+    if (code.length == 6) {
+      for (int i = 0; i < 6; i++) {
+        _controllers[i].text = code[i];
+      }
+      _focusNodes[5].unfocus();
+      await _verifyCode();
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
+    for (final focus in _focusNodes) {
+      focus.dispose();
+    }
+    _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final successColor = Colors.green;
+    final defaultColor = Colors.deepPurple.shade700;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.mark_email_unread,
-                  color: Colors.amber,
-                  size: 80,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Verify Your Email",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "A verification link has been sent to:",
-                  style: TextStyle(color: Colors.white70),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  user?.email ?? '',
-                  style: const TextStyle(color: Colors.lightBlueAccent),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.refresh),
-                  label: Text(
-                    _isSending
-                        ? "Sending..."
-                        : _cooldown > 0
-                        ? "Resend in $_cooldown s"
-                        : "Resend Verification",
-                  ),
-                  onPressed: _isSending || _cooldown > 0
-                      ? null
-                      : _resendEmailVerification,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: PhishzilColors.secondary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: _checkingVerification
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.deepPurple,
+        title: const Text("Verify Email"),
+      ),
+      body: GestureDetector(
+        onLongPress: _handlePaste,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                "Enter the 6-digit code sent to your email",
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(6, (index) {
+                  return ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: SizedBox(
+                      width: 45,
+                      child: TextField(
+                        controller: _controllers[index],
+                        focusNode: _focusNodes[index],
+                        keyboardType: TextInputType.number,
+                        maxLength: 1,
+                        textAlign: TextAlign.center,
+                        autofillHints: const [AutofillHints.oneTimeCode],
+                        style: const TextStyle(
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        decoration: InputDecoration(
+                          counterText: '',
+                          filled: true,
+                          fillColor: _isSuccess ? successColor : defaultColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
-                        )
-                      : const Icon(Icons.check_circle_outline),
-                  label: Text(
-                    _checkingVerification ? "Checking..." : "I’ve Verified",
-                  ),
-                  onPressed: _checkingVerification
-                      ? null
-                      : _checkVerificationAndProceed,
+                        ),
+                        onChanged: (val) => _onCodeChanged(index, val),
+                        enabled: !_isSuccess,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 32),
+              if (!_isSuccess)
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _verifyCode,
+                  icon: const Icon(Icons.verified),
+                  label: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("Verify"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.deepPurpleAccent,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                      vertical: 14,
+                      horizontal: 64,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                TextButton.icon(
-                  icon: const Icon(Icons.logout, color: Colors.redAccent),
-                  label: const Text(
-                    "Logout",
-                    style: TextStyle(color: Colors.redAccent),
-                  ),
-                  onPressed: _logout,
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: _isLoading ? null : _resendCode,
+                child: const Text(
+                  "Resend Code",
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "📋 Long press anywhere to paste the code",
+                style: TextStyle(color: Colors.white38),
+              ),
+            ],
           ),
         ),
       ),

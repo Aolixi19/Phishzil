@@ -20,7 +20,6 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
 
   bool _obscurePassword = true;
   bool _agreedToTerms = false;
-
   String _passwordStrength = "";
 
   @override
@@ -76,14 +75,16 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
 
     ref.listen(authProvider, (prev, next) {
       if (next.errorMessage != null) {
-        if (next.errorMessage!.contains("verify your email")) {
-          _showSnack("Signup successful! Redirecting to verify...");
-          Future.delayed(const Duration(seconds: 2), () {
-            Navigator.pushReplacementNamed(context, AppRoutes.verifyEmail);
-          });
-        } else {
-          _showSnack(next.errorMessage!, isError: true);
-        }
+        Future.microtask(() {
+          if (next.errorMessage!.toLowerCase().contains("verify")) {
+            _showSnack(next.errorMessage!);
+            Future.delayed(const Duration(seconds: 2), () {
+              Navigator.pushReplacementNamed(context, AppRoutes.verifyCode);
+            });
+          } else {
+            _showSnack(next.errorMessage!, isError: true);
+          }
+        });
       }
     });
 
@@ -172,9 +173,9 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
                                   color: PhishzilColors.secondary,
                                 ),
                                 onPressed: () {
-                                  setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  );
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
                                 },
                               ),
                             ),
@@ -210,9 +211,9 @@ class _PhishzilSignUpPageState extends ConsumerState<PhishzilSignUpPage> {
                                   value: _agreedToTerms,
                                   activeColor: PhishzilColors.secondary,
                                   onChanged: (val) {
-                                    setState(
-                                      () => _agreedToTerms = val ?? false,
-                                    );
+                                    setState(() {
+                                      _agreedToTerms = val ?? false;
+                                    });
                                   },
                                 ),
                                 Expanded(

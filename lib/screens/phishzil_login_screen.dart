@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../routers/phishzil_app_routes.dart';
 import '../utils/phishzil_constants.dart';
 import '../providers/phishzil_auth_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PhishzilLoginPage extends ConsumerStatefulWidget {
   const PhishzilLoginPage({super.key});
@@ -16,9 +16,27 @@ class _PhishzilLoginPageState extends ConsumerState<PhishzilLoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
   bool _obscurePassword = true;
   bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final remember = prefs.getBool("remember_me") ?? false;
+
+    if (remember) {
+      setState(() {
+        _rememberMe = true;
+        _emailController.text = prefs.getString("saved_email") ?? '';
+        _passwordController.text = prefs.getString("saved_password") ?? '';
+      });
+    }
+  }
 
   void _showSnack(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -31,24 +49,22 @@ class _PhishzilLoginPageState extends ConsumerState<PhishzilLoginPage> {
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      final identifier = _emailController.text.trim();
+      final identifier = _emailController.text.trim(); // username or email
       final password = _passwordController.text.trim();
 
       await ref
           .read(authProvider.notifier)
           .login(identifier, password, _rememberMe);
 
-      final user = FirebaseAuth.instance.currentUser;
+      final auth = ref.read(authProvider);
 
-      if (user != null && !user.emailVerified) {
-        _showSnack(
-          "Please verify your email before logging in.",
-          isError: true,
-        );
-        await FirebaseAuth.instance.signOut();
-      } else if (user != null && user.emailVerified) {
-        _showSnack("Login successful");
+      if (auth.isAuthenticated) {
+        _showSnack("Login successful 🎉");
         Navigator.pushReplacementNamed(context, AppRoutes.home);
+      } else if (auth.errorMessage?.toLowerCase().contains("not verified") ??
+          false) {
+        _showSnack("Email not verified. Please verify to continue.");
+        Navigator.pushReplacementNamed(context, AppRoutes.verifyCode);
       }
     }
   }
@@ -57,9 +73,12 @@ class _PhishzilLoginPageState extends ConsumerState<PhishzilLoginPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
 
-    ref.listen(authProvider, (previous, next) {
+    // ✅ ref.listen for showing error messages
+    ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.errorMessage != null) {
-        _showSnack(next.errorMessage!, isError: true);
+        Future.microtask(() {
+          _showSnack(next.errorMessage!, isError: true);
+        });
       }
     });
 
@@ -153,7 +172,7 @@ class _PhishzilLoginPageState extends ConsumerState<PhishzilLoginPage> {
                                   hintStyle: const TextStyle(
                                     color: Colors.white60,
                                   ),
-                                  labelText: "Username or Email",
+                                  labelText: "Email or Username",
                                   labelStyle: TextStyle(
                                     color: PhishzilColors.secondary,
                                   ),

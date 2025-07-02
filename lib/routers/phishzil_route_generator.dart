@@ -7,11 +7,12 @@ import '../screens/phishzil_history_screen.dart';
 import '../screens/phishzil_alerts_screen.dart';
 import '../screens/phishzil_admin_screen.dart';
 import '../screens/phishzil_settings_screen.dart';
-import '../screens/phish_login_screen.dart';
-import '../screens/phish_signup_screen.dart';
+import '../screens/phishzil_login_screen.dart';
+import '../screens/phishzil_signup_screen.dart';
 import '../screens/phishzil_password_reset_screen.dart';
 import '../screens/phishzil_splash_page.dart';
 import '../screens/phishzil_terms_page.dart';
+import '../screens/phishzil_verify_email_page.dart';
 
 class PhishZilRouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -32,12 +33,12 @@ class PhishZilRouteGenerator {
         return MaterialPageRoute(builder: (_) => const PhishzilLoginPage());
       case '/signup':
         return MaterialPageRoute(builder: (_) => const PhishzilSignUpPage());
+      case '/verify-code':
+        return MaterialPageRoute(builder: (_) => const VerifyEmailCodeScreen());
       case '/reset':
         return MaterialPageRoute(
           builder: (_) => const PhishzilPasswordResetScreen(),
         );
-      case '/verify-email':
-        return MaterialPageRoute(builder: (_) => const PhishzilSignUpPage());
       case '/settings':
         return MaterialPageRoute(
           builder: (_) => const PhishzilSettingsScreen(),

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../utils/phishzil_constants.dart';
 
 class PhishzilPasswordResetScreen extends ConsumerStatefulWidget {
@@ -16,22 +18,44 @@ class _PhishzilPasswordResetScreenState
   final _formKey = GlobalKey<FormState>();
   bool _isSending = false;
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  static const String _baseUrl = "http://192.168.105.92:8000/auth";
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 
   Future<void> _handleReset() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSending = true);
-      await Future.delayed(const Duration(seconds: 2)); // Mock delay
-      setState(() => _isSending = false);
 
-      _showSnack("Reset link sent to ${_emailController.text.trim()}");
+      try {
+        final response = await http.post(
+          Uri.parse("$_baseUrl/reset-password"),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': _emailController.text.trim()}),
+        );
 
-      // Navigate back to login
-      Navigator.pop(context);
+        final data = jsonDecode(response.body);
+
+        if (response.statusCode == 200) {
+          _showSnack("Reset link sent to ${_emailController.text.trim()}");
+          Navigator.pop(context);
+        } else {
+          _showSnack(
+            data['error'] ?? "Failed to send reset link",
+            isError: true,
+          );
+        }
+      } catch (e) {
+        _showSnack("Error: Could not reach the server", isError: true);
+      } finally {
+        setState(() => _isSending = false);
+      }
     }
   }
 

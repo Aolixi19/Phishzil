@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Represents the current state of authentication.
 class AuthState {
   final bool isAuthenticated;
   final bool isLoading;
@@ -35,107 +36,98 @@ class AuthState {
   }
 }
 
-/// Notifier that manages login/signup/logout logic.
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState.initial());
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final String _baseUrl =
+      dotenv.env['API_BASE_URL']?.trim() ?? 'http://192.168.169.92:8000/auth';
 
-  /// Sign up with Firebase Auth and send verification email
   Future<void> signUp(String username, String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-
     try {
-      // Create Firebase user
-      await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+      final response = await http.post(
+        Uri.parse("$_baseUrl/register"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': username,
+          'username': username,
+          'email': email,
+          'password': password,
+        }),
       );
 
-      // Set display name
-      await _auth.currentUser?.updateDisplayName(username);
+      final data = jsonDecode(response.body);
 
-      // Send email verification
-      await _auth.currentUser?.sendEmailVerification();
+      if (response.statusCode == 201) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('email', email);
+        await prefs.setString('username', username);
 
-      // Store locally for login with username
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("username", username);
-      await prefs.setString("email", email);
-
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: "Signup successful! Please verify your email.",
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: data['error'] ?? "Signup failed.",
+        );
+      }
+    } catch (e) {
       state = state.copyWith(
-        isAuthenticated: false,
         isLoading: false,
-        errorMessage:
-            "Signup successful! Please verify your email before login.",
+        errorMessage: "Connection failed. Please try again.",
       );
-    } on FirebaseAuthException catch (e) {
-      final error = e.code == 'email-already-in-use'
-          ? 'Account already exists. Please login.'
-          : e.message ?? 'Signup failed.';
-      state = state.copyWith(isLoading: false, errorMessage: error);
     }
   }
 
-  /// Login with email or username and check verification
   Future<void> login(
     String identifier,
     String password,
     bool rememberMe,
   ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-
     try {
-      final prefs = await SharedPreferences.getInstance();
-      String? email = identifier;
+      final response = await http.post(
+        Uri.parse("$_baseUrl/login"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'identifier': identifier, 'password': password}),
+      );
 
-      // Handle login with username
-      if (!identifier.contains("@")) {
-        final savedUsername = prefs.getString("username");
-        if (savedUsername == identifier) {
-          email = prefs.getString("email");
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['token'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+
+        if (rememberMe) {
+          await prefs.setBool("remember_me", true);
+          await prefs.setString("saved_email", identifier);
+          await prefs.setString("saved_password", password);
         } else {
-          throw FirebaseAuthException(
-            code: "user-not-found",
-            message: "Username not found.",
-          );
+          await prefs.remove("saved_email");
+          await prefs.remove("saved_password");
+          await prefs.setBool("remember_me", false);
         }
-      }
 
-      // Sign in with email
-      await _auth.signInWithEmailAndPassword(email: email!, password: password);
+        await prefs.setString("token", data['token']);
+        await prefs.setString("username", data['user']['username'] ?? '');
+        await prefs.setString("email", data['user']['email'] ?? '');
 
-      // Check if email is verified
-      final user = _auth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await _auth.signOut();
-        throw FirebaseAuthException(
-          code: "email-not-verified",
-          message: "Please verify your email before logging in.",
+        state = state.copyWith(isAuthenticated: true, isLoading: false);
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: data['error'] ?? "Invalid login credentials.",
         );
       }
-
-      // Store remember me
-      if (rememberMe) {
-        await prefs.setBool("remember_me", true);
-        await prefs.setString("saved_email", email);
-        await prefs.setString("saved_password", password);
-      } else {
-        await prefs.setBool("remember_me", false);
-        await prefs.remove("saved_email");
-        await prefs.remove("saved_password");
-      }
-
-      state = state.copyWith(isAuthenticated: true, isLoading: false);
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.message ?? "Login failed.",
+        errorMessage: "Login failed. Server not reachable.",
       );
     }
   }
 
-  /// Try to auto-login from saved credentials
   Future<void> tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final remember = prefs.getBool("remember_me") ?? false;
@@ -150,32 +142,71 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Logout and clear local storage
   Future<void> logout() async {
-    await _auth.signOut();
-
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool("remember_me", false);
-    await prefs.remove("saved_email");
-    await prefs.remove("saved_password");
-
+    await prefs.clear();
     state = AuthState.initial();
   }
 
-  /// Send verification email again
-  Future<void> resendVerificationEmail() async {
-    try {
-      final user = _auth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
+  Future<void> verifyToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
+    if (token != null) {
+      final response = await http.get(
+        Uri.parse("$_baseUrl/users"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        state = state.copyWith(isAuthenticated: true);
+      } else {
+        state = state.copyWith(isAuthenticated: false);
       }
+    }
+  }
+
+  // ✅ Email Code Verification (correct)
+  Future<bool> verifyCode(String code) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('email');
+
+      if (email == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$_baseUrl/verify-code"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'code': code}),
+      );
+
+      return response.statusCode == 200;
     } catch (_) {
-      // Optionally handle errors
+      return false;
+    }
+  }
+
+  // ✅ Resend Email Code
+  Future<bool> resendVerificationCode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('email');
+
+      if (email == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$_baseUrl/resend-code"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 }
 
-/// Riverpod provider for global access
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();
 });
