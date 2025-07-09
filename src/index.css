@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  background-color: #6b7280;
+  /* light gray */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@theme {
+  --color-primary: #2EACE1;
+  --color-deep-primary: #18A8E5;
+  --color-background: #F3F6FD;
+  --color-gray: #575454;
+}
