@@ -1,0 +1,16 @@
+services:
+  app:
+    image: onismond10/verify-it-real-frontend:latest
+    container_name: verify-it-real-frontend
+    restart: always
+    ports:
+      - "4173:4173"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - vite-dist:/app/dist
+
+volumes:
+  vite-dist:
