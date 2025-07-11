@@ -1,10 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
-
+import 'package:go_router/go_router.dart' show GoRouterHelper;
 import '../controller/auth_provider.dart';
-import '../../../global_widgets/custom_button.dart';
-
+import 'package:phishzil/global_widgets/custom_button.dart';
 import '../../../routes/route_names.dart';
 
 class LoginPage extends StatefulWidget {

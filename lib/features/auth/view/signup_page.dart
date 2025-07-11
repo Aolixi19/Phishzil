@@ -17,6 +17,7 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
+
   late final TextEditingController nameController;
   late final TextEditingController usernameController;
   late final TextEditingController emailController;
@@ -76,6 +77,7 @@ class _SignupPageState extends State<SignupPage> {
       }
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
       await authProvider.signup(
         name: nameController.text.trim(),
         username: usernameController.text.trim(),
@@ -84,9 +86,9 @@ class _SignupPageState extends State<SignupPage> {
       );
 
       if (authProvider.errorMessage == null) {
-        // ✅ Check for verification step
         if (authProvider.nextAction == 'verify') {
-          context.go(
+          // ✅ Redirect to verification page
+          context.goNamed(
             RouteNames.verify,
             extra: {'email': emailController.text.trim()},
           );
@@ -97,7 +99,7 @@ class _SignupPageState extends State<SignupPage> {
               backgroundColor: Colors.green,
             ),
           );
-          context.go(RouteNames.login);
+          context.goNamed('login');
         }
       }
     }
@@ -301,7 +303,7 @@ class _SignupPageState extends State<SignupPage> {
                         style: TextStyle(color: Colors.white70),
                       ),
                       GestureDetector(
-                        onTap: () => context.go(RouteNames.login),
+                        onTap: () => context.push(RouteNames.login),
                         child: const Text(
                           'Login',
                           style: TextStyle(
