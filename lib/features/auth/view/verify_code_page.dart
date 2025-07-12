@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../controller/auth_provider.dart';
 import '../../../global_widgets/custom_button.dart';
@@ -49,11 +51,9 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification successful ✅'),
-            duration: Duration(seconds: 2),
-          ),
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(message: 'Verification successful ✅'),
         );
         context.go(RouteNames.login);
       }
@@ -78,11 +78,9 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('New verification code sent ✅'),
-            duration: Duration(seconds: 2),
-          ),
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(message: 'New verification code sent ✅'),
         );
       }
     } catch (e) {

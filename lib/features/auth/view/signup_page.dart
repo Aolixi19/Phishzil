@@ -1,8 +1,8 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 
 import '../controller/auth_provider.dart';
 import '../../../global_widgets/custom_button.dart';
@@ -58,19 +58,10 @@ class _SignupPageState extends State<SignupPage> {
   void handleSignup() async {
     if ((_formKey.currentState?.validate() ?? false)) {
       if (!_agreeToTerms) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Terms Required'),
-            content: const Text(
-              'You must accept the terms and conditions to continue.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(
+            message: 'You must accept the terms and conditions to continue.',
           ),
         );
         return;
@@ -87,20 +78,22 @@ class _SignupPageState extends State<SignupPage> {
 
       if (authProvider.errorMessage == null) {
         if (authProvider.nextAction == 'verify') {
-          // ✅ Redirect to verification page
           context.goNamed(
             RouteNames.verify,
             extra: {'email': emailController.text.trim()},
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Signup successful ✅"),
-              backgroundColor: Colors.green,
-            ),
+          showTopSnackBar(
+            Overlay.of(context),
+            const CustomSnackBar.success(message: 'Signup successful ✅'),
           );
           context.goNamed('login');
         }
+      } else {
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.error(message: authProvider.errorMessage!),
+        );
       }
     }
   }
@@ -283,15 +276,6 @@ class _SignupPageState extends State<SignupPage> {
                   label: 'Sign Up',
                   isLoading: auth.isLoading,
                 ),
-                const SizedBox(height: 20),
-
-                if ((auth.errorMessage ?? '').isNotEmpty)
-                  Center(
-                    child: Text(
-                      auth.errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
                 const SizedBox(height: 30),
 
                 Center(

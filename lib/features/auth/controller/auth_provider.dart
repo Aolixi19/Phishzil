@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthProvider extends ChangeNotifier {
   final _secureStorage = const FlutterSecureStorage();
@@ -359,7 +362,49 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Helper methods
+  /// GOOGLE SIGN-IN
+  Future<void> loginWithGoogle() async {
+    _setLoading(true);
+    errorMessage = null;
+
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        errorMessage = "Google Sign-In cancelled";
+        _setLoading(false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+        accessToken: googleAuth.accessToken,
+      );
+
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
+
+      currentUser = {
+        'email': userCredential.user?.email,
+        'name': userCredential.user?.displayName ?? 'Google User',
+      };
+      isAuthenticated = true;
+    } on FirebaseAuthException catch (e) {
+      errorMessage = e.message;
+      isAuthenticated = false;
+    } catch (e) {
+      errorMessage = "Google Sign-In failed.";
+      isAuthenticated = false;
+    }
+
+    _setLoading(false);
+  }
+
+  // Helpers
   Map<String, dynamic> _parseResponse(http.Response response) {
     try {
       return jsonDecode(response.body) as Map<String, dynamic>? ?? {};
@@ -392,18 +437,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Check if we can request a new code (rate limiting)
   bool canRequestNewCode() {
     if (lastCodeRequestTime == null) return true;
-    final now = DateTime.now();
-    return now.difference(lastCodeRequestTime!) > const Duration(minutes: 1);
+    return DateTime.now().difference(lastCodeRequestTime!) >
+        const Duration(minutes: 1);
   }
 
-  /// Get remaining time until next code can be requested
   Duration? getRemainingCooldown() {
     if (lastCodeRequestTime == null || canRequestNewCode()) return null;
-    final now = DateTime.now();
-    return const Duration(minutes: 1) - now.difference(lastCodeRequestTime!);
+    return const Duration(minutes: 1) -
+        DateTime.now().difference(lastCodeRequestTime!);
   }
 
   Future resendResetCode(String email) async {}

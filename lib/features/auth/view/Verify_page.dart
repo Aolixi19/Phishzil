@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../controller/auth_provider.dart';
 import '../../../global_widgets/custom_button.dart';
@@ -103,8 +105,14 @@ class _VerifyPageState extends State<VerifyPage>
     });
 
     if (success) {
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(message: 'Verification successful ✅'),
+      );
       await Future.delayed(const Duration(seconds: 1));
-      context.go(RouteNames.login);
+      if (mounted) {
+        context.go(RouteNames.login);
+      }
     } else {
       _triggerShake();
     }
@@ -122,18 +130,14 @@ class _VerifyPageState extends State<VerifyPage>
         _secondsRemaining = 600;
       });
       _startTimer();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("New code sent to your email ✅"),
-          backgroundColor: Colors.green,
-        ),
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(message: "New code sent to your email ✅"),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to resend code ❌"),
-          backgroundColor: Colors.red,
-        ),
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.error(message: "Failed to resend code ❌"),
       );
     }
   }
@@ -265,7 +269,7 @@ class _VerifyPageState extends State<VerifyPage>
                 const SizedBox(height: 30),
 
                 const Text(
-                  'Didn’t get the code? Check your spam folder.',
+                  'Didnt get the code Check your spam folder.',
                   style: TextStyle(color: Colors.white38),
                   textAlign: TextAlign.center,
                 ),

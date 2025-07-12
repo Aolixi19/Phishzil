@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 
 import '../controller/auth_provider.dart';
 import 'package:phishzil/global_widgets/custom_button.dart';
@@ -59,7 +61,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         timer.cancel();
         setState(() => _canResend = true);
       } else {
-        // Only update UI every 5 seconds to reduce rebuilds
         if (_secondsRemaining % 5 == 0 || _secondsRemaining <= 5) {
           setState(() => _secondsRemaining--);
         } else {
@@ -79,17 +80,17 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
     if (success) {
       _startResendTimer();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification code resent to your email.'),
-          backgroundColor: Colors.green,
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(
+          message: 'Verification code resent to your email.',
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Failed to resend code'),
-          backgroundColor: Colors.redAccent,
+      showTopSnackBar(
+        Overlay.of(context),
+        CustomSnackBar.error(
+          message: authProvider.errorMessage ?? 'Failed to resend code',
         ),
       );
     }
@@ -117,13 +118,18 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset successful. Please login.'),
-            backgroundColor: Colors.green,
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(
+            message: 'Password reset successful. Please login.',
           ),
         );
         context.go(RouteNames.login);
+      } else if ((authProvider.errorMessage ?? '').isNotEmpty) {
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.error(message: authProvider.errorMessage!),
+        );
       }
     });
   }
@@ -178,13 +184,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     label: 'Reset Password',
                     isLoading: auth.isLoading,
                   ),
-                  if (auth.errorMessage?.isNotEmpty ?? false) ...[
-                    const SizedBox(height: 20),
-                    Text(
-                      auth.errorMessage!,
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  ],
                   const SizedBox(height: 20),
                   _buildBackToLoginButton(),
                 ],
