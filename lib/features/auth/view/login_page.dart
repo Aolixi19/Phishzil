@@ -1,10 +1,15 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
+import 'package:go_router/go_router.dart' show GoRouterHelper;
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:lottie/lottie.dart';
+import 'dart:io';
 
 import '../controller/auth_provider.dart';
-import '../../../global_widgets/custom_button.dart';
-
+import 'package:phishzil/global_widgets/custom_button.dart';
 import '../../../routes/route_names.dart';
 
 class LoginPage extends StatefulWidget {
@@ -19,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   late final TextEditingController emailController;
   late final TextEditingController passwordController;
   bool rememberMe = false;
-  bool _obscurePassword = true; // For toggling password visibility
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -44,20 +49,68 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (authProvider.isAuthenticated) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Login successful ✅"),
-            backgroundColor: Colors.green,
-          ),
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(message: 'Login successful ✅'),
         );
-
-        // Redirect to dashboard or desired route
-        context.go(
-          RouteNames.dashboard,
-        ); // Update this to your actual dashboard route
+        context.go(RouteNames.dashboard);
+      } else if ((authProvider.errorMessage ?? '').isNotEmpty) {
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.error(message: authProvider.errorMessage!),
+        );
       }
     }
   }
+
+  Future<void> handleGoogleSignIn() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loginWithGoogle();
+
+    if (authProvider.isAuthenticated) {
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(message: 'Signed in with Google ✅'),
+      );
+      context.go(RouteNames.dashboard);
+    } else if ((authProvider.errorMessage ?? '').isNotEmpty) {
+      showTopSnackBar(
+        Overlay.of(context),
+        CustomSnackBar.error(message: authProvider.errorMessage!),
+      );
+    } else {
+      context.push(
+        RouteNames.login,
+      ); // Redirect to signup if Google login fails
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.error(
+          message:
+              'Google login failed, please  check your internet Connection.',
+        ),
+      );
+    }
+    ;
+  }
+  /*
+  Future<void> handleAppleSignIn() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loginWithApple();
+
+    if (authProvider.isAuthenticated) {
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(message: 'Signed in with Apple ✅'),
+      );
+      context.go(RouteNames.dashboard);
+    } else if ((authProvider.errorMessage ?? '').isNotEmpty) {
+      showTopSnackBar(
+        Overlay.of(context),
+        CustomSnackBar.error(message: authProvider.errorMessage!),
+      );
+    }
+  }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -75,10 +128,16 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// Logo
                   const SizedBox(height: 10.0),
-
-                  /// Title
+                  Center(
+                    child: LottieBuilder.asset(
+                      'assets/animations/Security000-Purple.json',
+                      height: 150,
+                      width: 150,
+                      repeat: true,
+                    ),
+                  ),
+                  const SizedBox(height: 30.0),
                   const Center(
                     child: Text(
                       'PhishZil Login',
@@ -89,9 +148,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 50),
-
-                  /// Email Field
+                  const SizedBox(height: 20),
                   const Text(
                     'Email',
                     style: TextStyle(color: Colors.white70, fontSize: 16),
@@ -121,8 +178,6 @@ class _LoginPageState extends State<LoginPage> {
                     },
                   ),
                   const SizedBox(height: 20),
-
-                  /// Password Field with Eye Toggle
                   const Text(
                     'Password',
                     style: TextStyle(color: Colors.white70, fontSize: 16),
@@ -166,8 +221,6 @@ class _LoginPageState extends State<LoginPage> {
                     },
                   ),
                   const SizedBox(height: 10),
-
-                  /// Remember Me & Forgot Password
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -200,38 +253,50 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                   const SizedBox(height: 30),
-
-                  /// Login Button
                   GradientButton(
                     onPressed: handleLogin,
                     label: 'Login',
                     isLoading: auth.isLoading,
                   ),
-                  const SizedBox(height: 20),
-
-                  /// Error Message
-                  if ((auth.errorMessage ?? '').isNotEmpty)
-                    Center(
-                      child: Text(
-                        auth.errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-
-                  /// Welcome Message
-                  if (auth.isAuthenticated && (auth.userName ?? '').isNotEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Text(
-                          'Welcome, ${auth.userName}',
-                          style: const TextStyle(color: Colors.green),
-                        ),
-                      ),
-                    ),
                   const SizedBox(height: 30),
 
-                  /// Sign Up Prompt
+                  /// Social Login Section
+                  if ((auth.errorMessage ?? '').isNotEmpty)
+                    const SizedBox(height: 10),
+
+                  Center(
+                    child: Text(
+                      '--- Or continue with ---',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Image.asset(
+                          'assets/icons/icons8-google-48.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        onPressed: handleGoogleSignIn,
+                      ),
+                      const SizedBox(width: 20),
+                      if (Platform.isIOS || Platform.isMacOS)
+                        IconButton(
+                          icon: Image.asset(
+                            'assets/icons/icons8-apple-50.png',
+                            width: 40,
+                            height: 40,
+                          ),
+                          onPressed: () {},
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+
                   Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,

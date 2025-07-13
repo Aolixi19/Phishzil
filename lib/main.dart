@@ -9,7 +9,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
-  // Initialize AuthProvider and call initialize()
   final authProvider = AuthProvider();
   await authProvider.initialize(); // 👈 this line is the fix
 

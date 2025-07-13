@@ -1,25 +1,36 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthProvider extends ChangeNotifier {
-  late final String baseUrl;
   final _secureStorage = const FlutterSecureStorage();
+  String baseUrl = '';
 
+  // Auth state
   bool isLoading = false;
   bool isAuthenticated = false;
   String? errorMessage;
   String? token;
-  String? userName;
+  Map<String, dynamic>? currentUser;
 
-  // 👇 Added for verification flow
-  String? nextAction;
+  // Verification flow
+  String? nextAction; // 'verify' or 'reset'
   String? pendingEmail;
+  DateTime? lastCodeRequestTime;
+
+  String? get userName => currentUser?['name']?.toString();
 
   /// Initialize base URL from .env
   Future<void> initialize() async {
+    if (baseUrl.isNotEmpty) return;
+
+    await dotenv.load();
     final apiUrl = dotenv.env['API_BASE_URL'];
     if (apiUrl == null || apiUrl.isEmpty) {
       throw Exception('API_BASE_URL is not configured in .env file');
@@ -27,108 +38,123 @@ class AuthProvider extends ChangeNotifier {
     baseUrl = '${apiUrl.replaceAll(RegExp(r'/+$'), '')}/auth';
   }
 
-  Future<void> _checkInitialized() async {
-    if (baseUrl.isEmpty) {
-      await initialize();
+  /// Try auto-login from secure storage
+  Future<void> tryAutoLogin() async {
+    await initialize();
+    _setLoading(true);
+
+    try {
+      token = await _secureStorage.read(key: 'auth_token');
+      final userData = await _secureStorage.read(key: 'user_data');
+
+      if (token != null && userData != null) {
+        currentUser = jsonDecode(userData);
+        isAuthenticated = true;
+      }
+    } catch (e) {
+      await _secureStorage.deleteAll();
+      errorMessage = 'Session expired. Please login again.';
+    } finally {
+      _setLoading(false);
     }
   }
 
-  /// Try auto-login from secure storage
-  Future<void> tryAutoLogin() async {
-    await _checkInitialized();
-    token = await _secureStorage.read(key: 'auth_token');
-    userName = await _secureStorage.read(key: 'user_name');
-    isAuthenticated = token != null;
-    notifyListeners();
-  }
-
   /// LOGIN
-  Future<void> login({
+  Future<bool> login({
     required String identifier,
     required String password,
   }) async {
-    await _checkInitialized();
+    await initialize();
     _setLoading(true);
     errorMessage = null;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'identifier': identifier, 'password': password}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'identifier': identifier, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       final data = _parseResponse(response);
 
       if (response.statusCode == 200) {
         token = data['token']?.toString();
-        userName =
-            data['user']?['username']?.toString() ??
-            data['user']?['name']?.toString();
+        currentUser = data['user'] is Map
+            ? Map<String, dynamic>.from(data['user'])
+            : null;
         isAuthenticated = true;
 
         await _secureStorage.write(key: 'auth_token', value: token);
-        await _secureStorage.write(key: 'user_name', value: userName);
+        if (currentUser != null) {
+          await _secureStorage.write(
+            key: 'user_data',
+            value: jsonEncode(currentUser),
+          );
+        }
+        return true;
       } else {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          'Login failed',
+          defaultMessage: 'Invalid credentials',
         );
+        return false;
       }
     } catch (e) {
-      errorMessage = 'Network error: ${e.toString()}';
+      errorMessage = _getNetworkErrorMessage(e);
+      return false;
     } finally {
       _setLoading(false);
     }
   }
 
   /// SIGNUP
-  Future<void> signup({
+  Future<bool> signup({
     required String name,
     required String username,
     required String email,
     required String password,
   }) async {
-    await _checkInitialized();
+    await initialize();
     _setLoading(true);
     errorMessage = null;
     nextAction = null;
     pendingEmail = null;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': name,
-          'username': username,
-          'email': email,
-          'password': password,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/register'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'name': name,
+              'username': username,
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       final data = _parseResponse(response);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // ✅ Verification flow
-        if (data['next'] == 'verify') {
-          pendingEmail = email;
-          nextAction = 'verify';
-        } else {
-          errorMessage = null;
-        }
-      } else if (response.statusCode == 409) {
-        errorMessage = 'Email or username already exists';
+      if (response.statusCode == 201) {
+        nextAction = 'verify';
+        pendingEmail = email;
+        lastCodeRequestTime = DateTime.now();
+        return true;
       } else {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          'Signup failed',
+          defaultMessage: 'Registration failed',
         );
+        return false;
       }
     } catch (e) {
-      errorMessage = 'Signup error: ${e.toString()}';
+      errorMessage = _getNetworkErrorMessage(e);
+      return false;
     } finally {
       _setLoading(false);
     }
@@ -136,64 +162,109 @@ class AuthProvider extends ChangeNotifier {
 
   /// VERIFY EMAIL
   Future<bool> verifyCode(String email, String code) async {
-    await _checkInitialized();
+    await initialize();
     _setLoading(true);
     errorMessage = null;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/verify-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'code': code}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/verify-code'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'code': code}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       final data = _parseResponse(response);
 
       if (response.statusCode == 200) {
+        nextAction = null;
+        pendingEmail = null;
         return true;
       } else {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          'Verification failed',
+          defaultMessage: 'Invalid verification code',
         );
         return false;
       }
     } catch (e) {
-      errorMessage = 'Verification error: ${e.toString()}';
+      errorMessage = _getNetworkErrorMessage(e);
       return false;
     } finally {
       _setLoading(false);
     }
   }
 
-  /// REQUEST RESET CODE
-  Future<bool> requestResetCode(String email) async {
-    await _checkInitialized();
+  /// RESEND VERIFICATION CODE
+  Future<bool> resendVerificationCode(String email) async {
+    await initialize();
     _setLoading(true);
     errorMessage = null;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/request-reset-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/resend-verification'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       final data = _parseResponse(response);
 
       if (response.statusCode == 200) {
+        lastCodeRequestTime = DateTime.now();
         return true;
       } else {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          'Reset code request failed',
+          defaultMessage: 'Failed to resend code',
         );
         return false;
       }
     } catch (e) {
-      errorMessage = 'Reset request failed: ${e.toString()}';
+      errorMessage = _getNetworkErrorMessage(e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// REQUEST PASSWORD RESET CODE
+  Future<bool> requestResetCode(String email) async {
+    await initialize();
+    _setLoading(true);
+    errorMessage = null;
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/request-reset-code'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final data = _parseResponse(response);
+
+      if (response.statusCode == 200) {
+        nextAction = 'reset';
+        pendingEmail = email;
+        lastCodeRequestTime = DateTime.now();
+        return true;
+      } else {
+        errorMessage = _getErrorMessage(
+          data,
+          response.statusCode,
+          defaultMessage: 'Reset request failed',
+        );
+        return false;
+      }
+    } catch (e) {
+      errorMessage = _getNetworkErrorMessage(e);
       return false;
     } finally {
       _setLoading(false);
@@ -202,16 +273,18 @@ class AuthProvider extends ChangeNotifier {
 
   /// VERIFY RESET CODE
   Future<bool> verifyResetCode(String email, String code) async {
-    await _checkInitialized();
+    await initialize();
     _setLoading(true);
     errorMessage = null;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/verify-reset-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'code': code}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/verify-reset-code'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'code': code}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       final data = _parseResponse(response);
 
@@ -221,12 +294,12 @@ class AuthProvider extends ChangeNotifier {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          'Invalid reset code',
+          defaultMessage: 'Invalid reset code',
         );
         return false;
       }
     } catch (e) {
-      errorMessage = 'Verification error: ${e.toString()}';
+      errorMessage = _getNetworkErrorMessage(e);
       return false;
     } finally {
       _setLoading(false);
@@ -234,72 +307,147 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// RESET PASSWORD
-  Future<bool> resetPassword(String email, String password) async {
-    await _checkInitialized();
+  Future<bool> resetPassword(String email, String password, String code) async {
+    await initialize();
     _setLoading(true);
     errorMessage = null;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/reset-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+              'code': code,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       final data = _parseResponse(response);
 
       if (response.statusCode == 200) {
+        nextAction = null;
+        pendingEmail = null;
         return true;
       } else {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          'Reset failed',
+          defaultMessage: 'Password reset failed',
         );
         return false;
       }
     } catch (e) {
-      errorMessage = 'Reset error: ${e.toString()}';
+      errorMessage = _getNetworkErrorMessage(e);
       return false;
     } finally {
       _setLoading(false);
     }
   }
 
-  /// Parse API response
+  /// LOGOUT
+  Future<void> logout() async {
+    isAuthenticated = false;
+    token = null;
+    currentUser = null;
+    errorMessage = null;
+    nextAction = null;
+    pendingEmail = null;
+
+    await _secureStorage.delete(key: 'auth_token');
+    await _secureStorage.delete(key: 'user_data');
+
+    notifyListeners();
+  }
+
+  /// GOOGLE SIGN-IN
+  Future<void> loginWithGoogle() async {
+    _setLoading(true);
+    errorMessage = null;
+
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        errorMessage = "Google Sign-In cancelled";
+        _setLoading(false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+        accessToken: googleAuth.accessToken,
+      );
+
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
+
+      currentUser = {
+        'email': userCredential.user?.email,
+        'name': userCredential.user?.displayName ?? 'Google User',
+      };
+      isAuthenticated = true;
+    } on FirebaseAuthException catch (e) {
+      errorMessage = e.message;
+      isAuthenticated = false;
+    } catch (e) {
+      errorMessage = "Google Sign-In failed.";
+      isAuthenticated = false;
+    }
+
+    _setLoading(false);
+  }
+
+  // Helpers
   Map<String, dynamic> _parseResponse(http.Response response) {
     try {
       return jsonDecode(response.body) as Map<String, dynamic>? ?? {};
     } catch (e) {
-      return {'error': 'Invalid server response format'};
+      return {'error': 'Invalid server response'};
     }
   }
 
-  /// Friendly error extractor
   String _getErrorMessage(
     Map<String, dynamic> data,
-    int statusCode,
-    String fallback,
-  ) {
+    int statusCode, {
+    required String defaultMessage,
+  }) {
     return data['error']?.toString() ??
         data['message']?.toString() ??
-        data['error_message']?.toString() ??
-        '$fallback (Status: $statusCode)';
+        (statusCode >= 500 ? 'Server error' : defaultMessage);
   }
 
-  /// Set loading state
+  String _getNetworkErrorMessage(dynamic error) {
+    if (error is http.ClientException) {
+      return 'Network error: ${error.message}';
+    } else if (error is TimeoutException) {
+      return 'Request timed out';
+    }
+    return 'An unexpected error occurred';
+  }
+
   void _setLoading(bool loading) {
     isLoading = loading;
     notifyListeners();
   }
 
-  /// Logout
-  Future<void> logout() async {
-    isAuthenticated = false;
-    token = null;
-    userName = null;
-    errorMessage = null;
-    await _secureStorage.deleteAll();
-    notifyListeners();
+  bool canRequestNewCode() {
+    if (lastCodeRequestTime == null) return true;
+    return DateTime.now().difference(lastCodeRequestTime!) >
+        const Duration(minutes: 1);
   }
+
+  Duration? getRemainingCooldown() {
+    if (lastCodeRequestTime == null || canRequestNewCode()) return null;
+    return const Duration(minutes: 1) -
+        DateTime.now().difference(lastCodeRequestTime!);
+  }
+
+  Future resendResetCode(String email) async {}
 }
