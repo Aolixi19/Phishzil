@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-
+import 'package:firebase_core/firebase_core.dart'; // 👈 required
 import 'features/auth/controller/auth_provider.dart';
 import 'routes/app_router.dart';
 
@@ -9,8 +9,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
+  await Firebase.initializeApp(); // 👈 REQUIRED
+
   final authProvider = AuthProvider();
-  await authProvider.initialize(); // 👈 this line is the fix
+  await authProvider.initialize();
 
   runApp(
     ChangeNotifierProvider<AuthProvider>.value(

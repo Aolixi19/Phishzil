@@ -7,32 +7,38 @@
 ## 🚀 Features Implemented
 
 ### ✅ 1. Mobile App Setup
+
 - Flutter project initialized with platform-specific configurations.
 - Project theming and folder structure organized.
 - Routing implemented using `GoRouter`.
 
 ### ✅ 2. Authentication System
+
 - Firebase Email & Password login integrated.
 - Google Sign-In with Firebase Auth setup.
 - Sign-Up, Login, and Forgot Password UI with form validation.
 - User state managed securely with `Provider`.
 
 ### ✅ 3. OTP Email Verification & Reset
+
 - OTP code request & cooldown implemented.
 - Email code verification after signup.
 - Reset code flow for password recovery.
 
 ### ✅ 4. Security & Local Storage
+
 - Used `flutter_secure_storage` to securely store:
   - Authentication tokens
   - User data
 - Auto-login and logout implemented.
 
 ### ✅ 5. Dashboard Redirection
+
 - Redirect users to dashboard upon successful login (email or Google).
 - Clear UI feedback with snackbars for success/error states.
 
 ### ✅ 6. Backend Integration
+
 - Connected app to a live backend using `.env` and `flutter_dotenv`.
 - Verified registration, login, and OTP verification via real-time endpoints.
 
