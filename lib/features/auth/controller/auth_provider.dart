@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -20,38 +19,35 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? currentUser;
 
   // Verification flow
-  String? nextAction; // 'verify' or 'reset'
+  String? nextAction;
   String? pendingEmail;
   DateTime? lastCodeRequestTime;
 
   String? get userName => currentUser?['name']?.toString();
 
-  /// Initialize base URL from .env
+  /// Load .env and base URL
   Future<void> initialize() async {
     if (baseUrl.isNotEmpty) return;
-
     await dotenv.load();
     final apiUrl = dotenv.env['API_BASE_URL'];
     if (apiUrl == null || apiUrl.isEmpty) {
-      throw Exception('API_BASE_URL is not configured in .env file');
+      throw Exception('API_BASE_URL is not configured in .env');
     }
     baseUrl = '${apiUrl.replaceAll(RegExp(r'/+$'), '')}/auth';
   }
 
-  /// Try auto-login from secure storage
+  /// Try auto-login
   Future<void> tryAutoLogin() async {
     await initialize();
     _setLoading(true);
-
     try {
       token = await _secureStorage.read(key: 'auth_token');
       final userData = await _secureStorage.read(key: 'user_data');
-
       if (token != null && userData != null) {
         currentUser = jsonDecode(userData);
         isAuthenticated = true;
       }
-    } catch (e) {
+    } catch (_) {
       await _secureStorage.deleteAll();
       errorMessage = 'Session expired. Please login again.';
     } finally {
@@ -59,7 +55,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// LOGIN
+  /// Email login
   Future<bool> login({
     required String identifier,
     required String password,
@@ -81,18 +77,14 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         token = data['token']?.toString();
-        currentUser = data['user'] is Map
-            ? Map<String, dynamic>.from(data['user'])
-            : null;
+        currentUser = Map<String, dynamic>.from(data['user']);
         isAuthenticated = true;
 
         await _secureStorage.write(key: 'auth_token', value: token);
-        if (currentUser != null) {
-          await _secureStorage.write(
-            key: 'user_data',
-            value: jsonEncode(currentUser),
-          );
-        }
+        await _secureStorage.write(
+          key: 'user_data',
+          value: jsonEncode(currentUser),
+        );
         return true;
       } else {
         errorMessage = _getErrorMessage(
@@ -110,7 +102,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// SIGNUP
+  /// Signup
   Future<bool> signup({
     required String name,
     required String username,
@@ -160,7 +152,76 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// VERIFY EMAIL
+  /// Google Sign-In ✅
+  Future<void> loginWithGoogle() async {
+    _setLoading(true);
+    errorMessage = null;
+
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        errorMessage = "Google Sign-In cancelled";
+        _setLoading(false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+        accessToken: googleAuth.accessToken,
+      );
+
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
+
+      final user = userCredential.user;
+      final firebaseToken = await user?.getIdToken();
+
+      currentUser = {
+        'email': user?.email,
+        'name': user?.displayName ?? 'Google User',
+      };
+      token = firebaseToken;
+      isAuthenticated = true;
+
+      if (firebaseToken != null) {
+        await _secureStorage.write(key: 'auth_token', value: firebaseToken);
+      }
+      await _secureStorage.write(
+        key: 'user_data',
+        value: jsonEncode(currentUser),
+      );
+    } on FirebaseAuthException catch (e) {
+      errorMessage = e.message;
+      isAuthenticated = false;
+    } catch (e) {
+      errorMessage = "Google Sign-In failed.";
+      isAuthenticated = false;
+    }
+
+    _setLoading(false);
+  }
+
+  /// Logout
+  Future<void> logout() async {
+    isAuthenticated = false;
+    token = null;
+    currentUser = null;
+    errorMessage = null;
+    nextAction = null;
+    pendingEmail = null;
+
+    await _secureStorage.delete(key: 'auth_token');
+    await _secureStorage.delete(key: 'user_data');
+
+    notifyListeners();
+  }
+
+  /// Verify email
   Future<bool> verifyCode(String email, String code) async {
     await initialize();
     _setLoading(true);
@@ -185,7 +246,7 @@ class AuthProvider extends ChangeNotifier {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          defaultMessage: 'Invalid verification code',
+          defaultMessage: 'Invalid code',
         );
         return false;
       }
@@ -197,43 +258,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// RESEND VERIFICATION CODE
-  Future<bool> resendVerificationCode(String email) async {
-    await initialize();
-    _setLoading(true);
-    errorMessage = null;
-
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/resend-verification'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email}),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      final data = _parseResponse(response);
-
-      if (response.statusCode == 200) {
-        lastCodeRequestTime = DateTime.now();
-        return true;
-      } else {
-        errorMessage = _getErrorMessage(
-          data,
-          response.statusCode,
-          defaultMessage: 'Failed to resend code',
-        );
-        return false;
-      }
-    } catch (e) {
-      errorMessage = _getNetworkErrorMessage(e);
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// REQUEST PASSWORD RESET CODE
+  /// Reset password flow
   Future<bool> requestResetCode(String email) async {
     await initialize();
     _setLoading(true);
@@ -259,7 +284,7 @@ class AuthProvider extends ChangeNotifier {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          defaultMessage: 'Reset request failed',
+          defaultMessage: 'Failed to send reset code',
         );
         return false;
       }
@@ -271,7 +296,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// VERIFY RESET CODE
   Future<bool> verifyResetCode(String email, String code) async {
     await initialize();
     _setLoading(true);
@@ -306,7 +330,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// RESET PASSWORD
   Future<bool> resetPassword(String email, String password, String code) async {
     await initialize();
     _setLoading(true);
@@ -335,7 +358,7 @@ class AuthProvider extends ChangeNotifier {
         errorMessage = _getErrorMessage(
           data,
           response.statusCode,
-          defaultMessage: 'Password reset failed',
+          defaultMessage: 'Reset failed',
         );
         return false;
       }
@@ -347,68 +370,16 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// LOGOUT
-  Future<void> logout() async {
-    isAuthenticated = false;
-    token = null;
-    currentUser = null;
-    errorMessage = null;
-    nextAction = null;
-    pendingEmail = null;
-
-    await _secureStorage.delete(key: 'auth_token');
-    await _secureStorage.delete(key: 'user_data');
-
+  // Helpers
+  void _setLoading(bool loading) {
+    isLoading = loading;
     notifyListeners();
   }
 
-  /// GOOGLE SIGN-IN
-  Future<void> loginWithGoogle() async {
-    _setLoading(true);
-    errorMessage = null;
-
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      if (googleUser == null) {
-        errorMessage = "Google Sign-In cancelled";
-        _setLoading(false);
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-        accessToken: googleAuth.accessToken,
-      );
-
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
-
-      currentUser = {
-        'email': userCredential.user?.email,
-        'name': userCredential.user?.displayName ?? 'Google User',
-      };
-      isAuthenticated = true;
-    } on FirebaseAuthException catch (e) {
-      errorMessage = e.message;
-      isAuthenticated = false;
-    } catch (e) {
-      errorMessage = "Google Sign-In failed.";
-      isAuthenticated = false;
-    }
-
-    _setLoading(false);
-  }
-
-  // Helpers
   Map<String, dynamic> _parseResponse(http.Response response) {
     try {
       return jsonDecode(response.body) as Map<String, dynamic>? ?? {};
-    } catch (e) {
+    } catch (_) {
       return {'error': 'Invalid server response'};
     }
   }
@@ -432,11 +403,6 @@ class AuthProvider extends ChangeNotifier {
     return 'An unexpected error occurred';
   }
 
-  void _setLoading(bool loading) {
-    isLoading = loading;
-    notifyListeners();
-  }
-
   bool canRequestNewCode() {
     if (lastCodeRequestTime == null) return true;
     return DateTime.now().difference(lastCodeRequestTime!) >
@@ -450,4 +416,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future resendResetCode(String email) async {}
+
+  Future resendVerificationCode(String trim) async {}
 }
