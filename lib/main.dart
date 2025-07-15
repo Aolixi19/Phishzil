@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart'; // 👈 required
 import 'features/auth/controller/auth_provider.dart';
+import 'features/dashboard/view/providers/dashboard_provider.dart';
 import 'routes/app_router.dart';
 
 Future<void> main() async {
@@ -15,8 +16,13 @@ Future<void> main() async {
   await authProvider.initialize();
 
   runApp(
-    ChangeNotifierProvider<AuthProvider>.value(
-      value: authProvider,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(
+          create: (_) => DashboardProvider(),
+        ), // <-- Add this
+      ],
       child: const PhishZilApp(),
     ),
   );

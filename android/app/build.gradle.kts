@@ -8,6 +8,7 @@ plugins {
 
 dependencies {
   // Import the Firebase BoM
+  coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
   implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
   // TODO: Add the dependencies for Firebase products you want to use
   // When using the BoM, don't specify versions in Firebase dependencies
@@ -21,6 +22,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {

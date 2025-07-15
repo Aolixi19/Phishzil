@@ -13,7 +13,7 @@ import '../features/auth/view/terms_page.dart';
 import '../features/dashboard/view/dashboard_page.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/dashboard',
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
