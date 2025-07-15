@@ -64,10 +64,5 @@
 
 ---
 
-## 🔐 Environment Setup
 
-Make sure your `.env` file includes:
 
-```env
-API_BASE_URL=https://your-api-url.com/api
-```
