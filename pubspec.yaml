@@ -44,13 +44,25 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   animate_do: ^4.2.0
   top_snackbar_flutter: ^3.3.0
+  
   animations: ^2.0.11
   # sign_in_with_apple: ^7.0.1
+  connectivity_plus: ^6.0.3
   firebase_core: ^3.15.1
+  flutter_local_notifications: ^19.3.0
   firebase_auth: ^5.6.2
-  google_sign_in:
-    hosted: https://pub.flutter-io.cn
-    version: ^6.1.4
+  permission_handler: ^12.0.1
+  url_launcher: ^6.2.6
+  iconsax: ^0.0.8
+  pie_chart: 5.4.0
+  fl_chart: ^1.0.0
+  shimmer: ^3.0.0
+
+  google_sign_in: ^6.1.5
+
+  shared_preferences: ^2.2.3
+ 
+
 
 dev_dependencies:
   flutter_test:
@@ -79,8 +91,7 @@ flutter:
     - .env
     - assets/images/
     - assets/animations/
-    - assets/icons/icons8-google-48.png
-    - assets/icons/icons8-apple-50.png
+    - assets/icons/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

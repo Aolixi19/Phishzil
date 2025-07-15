@@ -90,7 +90,6 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     }
-    ;
   }
   /*
   Future<void> handleAppleSignIn() async {
@@ -276,6 +275,8 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
+                        color: Colors.lightBlueAccent,
+                        tooltip: 'Sign in with Google',
                         icon: Image.asset(
                           'assets/icons/icons8-google-48.png',
                           width: 40,

@@ -158,7 +158,11 @@ class AuthProvider extends ChangeNotifier {
     errorMessage = null;
 
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn.standard(
+        scopes: ['email', 'profile'],
+      );
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
         errorMessage = "Google Sign-In cancelled";
@@ -169,9 +173,15 @@ class AuthProvider extends ChangeNotifier {
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
+      if (googleAuth.idToken == null) {
+        errorMessage = "Google Sign-In failed: missing ID token";
+        isAuthenticated = false;
+        _setLoading(false);
+        return;
+      }
+
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
-        accessToken: googleAuth.accessToken,
       );
 
       final userCredential = await FirebaseAuth.instance.signInWithCredential(
