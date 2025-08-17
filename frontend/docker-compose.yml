@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  frontend:
+    build: .
+    container_name: phishzil-frontend
+    restart: always
+    ports:
+      - "80:80" # Serve on public HTTP port
+    environment:
+      - NODE_ENV=production
