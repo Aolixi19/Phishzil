@@ -1,55 +1,48 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-// Import images from assets
-import Toy from "../assets/toy.png";
-import research from "../assets/research.png";
-import Online from "../assets/online.png";
-import check from "../assets/check.png";
+// Placeholder images to simulate the process
+const FILE_SCAN_IMAGE = "https://placehold.co/200x120/f4f4f5/525252?text=FILE+SCAN";
+const THREAT_IDENTIFY_IMAGE = "https://placehold.co/200x120/f4f4f5/525252?text=THREAT+IDENTIFY";
+const NEUTRALIZING_IMAGE = "https://placehold.co/200x120/f4f4f5/525252?text=NEUTRALIZING";
+const COMPLETE_IMAGE = "https://placehold.co/200x120/f4f4f5/525252?text=COMPLETE";
 
 const stages = [
   {
-    title: "Scanning Email",
-    subtitle: "Analyzing the provided email for phishing indicators",
-    image: Toy,
-    steps: ["Initializing scanner", "Extracting headers", "Parsing email content"],
+    title: "Scanning File",
+    subtitle: "Checking the provided file for suspicious content",
+    image: FILE_SCAN_IMAGE,
+    steps: ["Initializing scanner", "Analyzing file headers", "Scanning for malicious code"],
     progress: 0
   },
   {
     title: "Identifying Threat",
-    subtitle: "Matching against known phishing templates",
-    image: research,
-    steps: ["Loading threat patterns", "Matching templates", "Threat detected"],
-    progress: 25
+    subtitle: "Matching against known threat signatures",
+    image: THREAT_IDENTIFY_IMAGE,
+    steps: ["Loading threat signatures", "Matching patterns", "Threat identified"],
+    progress: 30
   },
   {
     title: "Neutralizing Threat",
-    subtitle: "Removing malicious links and attachments",
-    image: Online,
-    steps: ["Disabling harmful links", "Cleaning attachments", "Sanitizing HTML content"],
-    progress: 50
-  },
-  {
-    title: "Securing Inbox",
-    subtitle: "Ensuring no residual malicious traces remain",
-    image: check,
-    steps: ["Scanning local cache", "Verifying email integrity", "Applying security measures"],
-    progress: 75
+    subtitle: "Removing malicious content from the file",
+    image: NEUTRALIZING_IMAGE,
+    steps: ["Disabling harmful scripts", "Quarantining malicious payloads", "Applying safe protocols"],
+    progress: 70
   },
   {
     title: "Analysis Complete",
     subtitle: "Scan results ready",
-    image: check, 
-    steps: ["Email analyzed and categorized", "Threat signatures identified", "Generating security report"],
+    image: COMPLETE_IMAGE,
+    steps: ["File analyzed and categorized", "Threat signatures identified", "Generating security report"],
     progress: 100,
     final: true
   }
 ];
 
-const PhEmail = () => {
+const PhFile = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const scanEmail = location.state?.scanEmail || "No email provided";
+  const scanFile = location.state?.scanFile || "No file provided";
 
   const [stageIndex, setStageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -90,23 +83,22 @@ const PhEmail = () => {
   }, [stageIndex]);
 
   const threatDetails = [
-    'Email phishing attempt detected',
-    `File Name: ${scanEmail}`,
+    'File Phishing attempt detected',
+    `File Name: ${scanFile}`,
     'Risk Level: HIGH',
-    'Action Taken: Email quarantined',
-    'Detection Time: 0.4 seconds',
-    'Suspicious sender: phishing@malicious-domain.com'
+    'Action Taken: File quarantined',
+    'Detection Time: 0.3 seconds',
   ];
 
   const handleViewReport = () => {
-    // Navigate to the reports page with email scan data
+    // Navigate to the reports page with file scan data
     navigate("/reports", {
       state: {
-        scanEmail: scanEmail,
+        scanFile: scanFile,
         threatDetails: threatDetails,
         status: "THREAT_DETECTED",
         scanDate: new Date().toLocaleString(),
-        scanType: "EMAIL" // Added to distinguish email scans from other types
+        scanType: "FILE" // Added to distinguish file scans from other types
       }
     });
   };
@@ -127,11 +119,11 @@ const PhEmail = () => {
 
           {/* Title and Subtitle */}
           <h2 className="mb-2 text-2xl font-bold text-red-500">THREAT DETECTED</h2>
-          <p className="mb-6 text-gray-500">An email has been flagged as a phishing threat and was blocked to protect your system.</p>
+          <p className="mb-6 text-gray-500">A file has been flagged as a phishing threat and was blocked to protect your system.</p>
 
-          {/* Scanned Email */}
+          {/* Scanned File */}
           <div className="p-3 mb-4 text-sm text-gray-700 bg-gray-100 rounded-lg">
-            <span className="font-medium">Scanned Email:</span> {scanEmail}
+            <span className="font-medium">Scanned File:</span> {scanFile}
           </div>
 
           {/* Threat Details Box */}
@@ -156,7 +148,7 @@ const PhEmail = () => {
               <span>View Report</span>
             </button>
             <button 
-              onClick={() => navigate("/email-scanner")}
+              onClick={() => navigate("/file-scanner")}
               className="flex items-center justify-center flex-1 px-6 py-3 space-x-2 font-semibold text-gray-700 transition-colors duration-200 bg-gray-200 rounded-lg hover:bg-gray-300"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -175,11 +167,12 @@ const PhEmail = () => {
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gray-100 font-inter">
       <div className="relative w-full max-w-sm p-8 mx-auto text-center bg-white shadow-2xl rounded-3xl">
-        
+
         <div className="mb-4 text-xs text-gray-500 break-all">
-          Scanning: <span className="font-medium text-gray-700">{scanEmail}</span>
+          Scanning: <span className="font-medium text-gray-700">{scanFile}</span>
         </div>
 
+        {/* Top Icon */}
         <div className="flex justify-center mb-6">
           <div className="flex items-center justify-center w-20 h-20 rounded-full shadow-inner bg-red-50">
             <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,21 +181,25 @@ const PhEmail = () => {
           </div>
         </div>
 
+        {/* Title and Subtitle */}
         <h2 className="mb-2 text-2xl font-bold text-gray-800">{stage.title}</h2>
         <p className="mb-8 text-gray-500">{stage.subtitle}</p>
 
+        {/* Illustration */}
         <div className="flex justify-center mb-8">
           <img
             src={stage.image}
             alt="Stage illustration"
             className="w-full h-auto max-w-xs animate-pulse"
+            onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/200x120/f4f4f5/525252?text=ILLUSTRATION"; }}
           />
         </div>
 
+        {/* Progress Bar */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2 text-sm font-medium text-gray-700">
             <span>SCANNING</span>
-            <span>{progress}%</span>
+            <span>{Math.round(progress)}%</span>
           </div>
           <div className="w-full h-2 bg-gray-200 rounded-full">
             <div
@@ -212,6 +209,7 @@ const PhEmail = () => {
           </div>
         </div>
 
+        {/* Status Steps */}
         <div className="mb-8 text-left">
           {completedSteps.map((step, index) => (
             <div key={index} className="flex items-center py-1 text-sm font-medium text-gray-700">
@@ -227,4 +225,4 @@ const PhEmail = () => {
   );
 };
 
-export default PhEmail;
+export default PhFile;

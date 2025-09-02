@@ -1,6 +1,7 @@
-import React from "react";
-import { Link } from "react-router-dom";
 
+import React, { useState} from "react";
+import { Link } from "react-router-dom";
+//import MobileNavbar from "../components/MobileNavbar";
 
 import blockImg from "../assets/block.png";
 import penImg from "../assets/pen.png";
@@ -22,35 +23,98 @@ import profileImg from "../assets/profile.png";
 
 
 function App() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="font-sans text-gray-800">
       {/* Navbar */}
-      <header className="flex justify-between items-center px-10 py-5 bg-white shadow-md">
+      <header className="relative flex items-center justify-between px-4 py-4 bg-white shadow-md sm:px-6 lg:px-10">
         <h1 className="text-xl font-bold text-blue-600">Phishzil™</h1>
-        <nav className="hidden md:flex space-x-6 text-gray-600 font-medium">
-        <a href="#features" className="hover:text-blue-600">Features</a>
-        <a href="#architecture" className="hover:text-blue-600">Plateforms</a>
-        <Link to="/dashboard" className="hover:text-blue-600">
-          Dashboard
-        </Link>
-        <a href="#pricing" className="hover:text-blue-600">Pricing</a>
+        
+        {/* Desktop Navigation */}
+        <nav className="hidden space-x-6 font-medium text-gray-600 md:flex">
+          <a href="#features" className="hover:text-blue-600">Features</a>
+          <a href="#architecture" className="hover:text-blue-600">Platforms</a>
+          <Link to="/dashboard" className="hover:text-blue-600">
+            Dashboard
+          </Link>
+          <a href="#pricing" className="hover:text-blue-600">Pricing</a>
         </nav>
 
+        {/* Desktop Get Started Button */}
         <Link
           to="/signup"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 inline-block"
->
-           Get Started
+          className="hidden px-4 py-2 text-white bg-blue-600 rounded-lg md:inline-block hover:bg-blue-700"
+        >
+          Get Started
         </Link>
+
+        {/* Mobile Menu Button */}
+        <button 
+          className="p-2 text-gray-600 rounded-md md:hidden hover:text-gray-800 hover:bg-gray-100"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth="2" 
+              d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+            />
+          </svg>
+        </button>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="absolute left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg md:hidden top-full">
+            <div className="flex flex-col p-4 space-y-4">
+              <a 
+                href="#features" 
+                className="py-2 text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Features
+              </a>
+              <a 
+                href="#architecture" 
+                className="py-2 text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Platforms
+              </a>
+              <Link 
+                to="/dashboard" 
+                className="py-2 text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <a 
+                href="#pricing" 
+                className="py-2 text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Pricing
+              </a>
+              <Link 
+                to="/signup" 
+                className="px-4 py-2 mt-4 text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Get Started
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
-    <section className="bg-gradient-to-r from-blue-900 to-blue-600 text-white py-20 px-10">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
+    <section className="px-10 py-20 text-white bg-gradient-to-r from-blue-900 to-blue-600">
+      <div className="grid items-center max-w-6xl gap-10 mx-auto md:grid-cols-2">
     
         {/* Left: Text */}
       <div className="text-left">
-      <h2 className="text-4xl md:text-5xl font-bold mb-6">
+      <h2 className="mb-6 text-4xl font-bold md:text-5xl">
         Real-time AI <br />
         <span className="text-green-400">Phishing</span> Protection
       </h2>
@@ -65,13 +129,13 @@ function App() {
         {/* ✅ Updated to Link */}
         <Link
           to="/signup"
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-400 transition"
+          className="px-6 py-3 font-semibold text-white transition bg-blue-500 rounded-lg hover:bg-blue-400"
         >
           Start Free Trial
         </Link>
         <Link
           to="/demo"
-          className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
+          className="px-6 py-3 font-semibold text-blue-600 transition bg-white rounded-lg hover:bg-gray-100"
         >
           Admin Demo
         </Link>
@@ -94,14 +158,14 @@ function App() {
 
       {/* Stats Section */}
 <section className="py-16 text-center">
-  <h3 className="text-2xl font-semibold mb-4">
+  <h3 className="mb-4 text-2xl font-semibold">
     Unleash the full power of Phishzil
   </h3>
-  <p className="text-gray-600 mb-10 max-w-2xl mx-auto">
+  <p className="max-w-2xl mx-auto mb-10 text-gray-600">
     Everything you need to protect yourself online from phishing attacks is here.
   </p>
 
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+  <div className="grid max-w-4xl grid-cols-1 gap-8 mx-auto md:grid-cols-3">
     <div>
       <p className="text-3xl font-bold text-blue-600">99.9%</p>
       <p className="text-gray-600">Phish Detection Rate</p>
@@ -118,16 +182,16 @@ function App() {
 </section>
 
       {/* Core Protection Modules */}
-<section id="features" className="py-20 bg-gray-50 text-center">
-  <h2 className="text-blue-600 font-semibold uppercase tracking-wide mb-4">
+<section id="features" className="py-20 text-center bg-gray-50">
+  <h2 className="mb-4 font-semibold tracking-wide text-blue-600 uppercase">
     Features
   </h2>
-  <h3 className="text-3xl font-bold mb-6">Core Protection Modules</h3>
-  <p className="text-gray-600 max-w-2xl mx-auto mb-12">
+  <h3 className="mb-6 text-3xl font-bold">Core Protection Modules</h3>
+  <p className="max-w-2xl mx-auto mb-12 text-gray-600">
     Advanced AI-powered modules working together to provide comprehensive phishing protection.
   </p>
 
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+  <div className="grid max-w-6xl grid-cols-1 gap-8 mx-auto md:grid-cols-3">
     {[
       { img: chainImg, title: "Link Interception Engine", desc: "Detects and blocks malicious links before they reach the inbox." },
       { img: divImg, title: "AI Link Classifier", desc: "Analyzes suspicious links with AI models to ensure authenticity." },
@@ -138,12 +202,12 @@ function App() {
     ].map((item, i) => (
       <div
         key={i}
-        className="bg-white shadow-md rounded-xl p-6 hover:shadow-2xl hover:scale-105 transition-transform duration-300"
+        className="p-6 transition-transform duration-300 bg-white shadow-md rounded-xl hover:shadow-2xl hover:scale-105"
       >
-        <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-full bg-blue-100 hover:bg-blue-200 transition-colors duration-300">
-          <img src={item.img} alt={item.title} className="w-12 h-12 object-contain" />
+        <div className="flex items-center justify-center w-20 h-20 mx-auto mb-6 transition-colors duration-300 bg-blue-100 rounded-full hover:bg-blue-200">
+          <img src={item.img} alt={item.title} className="object-contain w-12 h-12" />
         </div>
-        <h4 className="font-bold text-lg mb-2 text-gray-800">{item.title}</h4>
+        <h4 className="mb-2 text-lg font-bold text-gray-800">{item.title}</h4>
         <p className="text-gray-600">{item.desc}</p>
       </div>
     ))}
@@ -151,18 +215,18 @@ function App() {
 </section>
 
 {/*  LearnMoreSection */}
-<div className="min-h-screen bg-gray-50 font-inter text-gray-800">
+<div className="min-h-screen text-gray-800 bg-gray-50 font-inter">
       {/* Top Section: Attachment-Level Threat Neutralization */}
-      <section className="relative bg-white py-16 sm:py-20 lg:py-24 overflow-hidden">
-        <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-between gap-12">
+      <section className="relative py-16 overflow-hidden bg-white sm:py-20 lg:py-24">
+        <div className="container flex flex-col items-center justify-between gap-12 px-4 mx-auto lg:flex-row">
           {/* Left Side: Illustration/Login Form Outline */}
           <div className="lg:w-1/2 flex justify-center items-center relative h-64 sm:h-80 lg:h-auto lg:min-h-[400px] w-full">
-            <div className="relative w-full h-full max-w-md bg-blue-50 bg-opacity-50 rounded-xl flex items-center justify-center">
-              <div className="absolute top-4 left-4 w-12 h-12 bg-blue-200 rounded-full opacity-30"></div>
-              <div className="absolute bottom-4 right-4 w-20 h-20 bg-blue-200 rounded-full opacity-20"></div>
-              <div className="border border-blue-300 rounded-lg p-6 w-64 bg-white shadow-lg">
+            <div className="relative flex items-center justify-center w-full h-full max-w-md bg-opacity-50 bg-blue-50 rounded-xl">
+              <div className="absolute w-12 h-12 bg-blue-200 rounded-full top-4 left-4 opacity-30"></div>
+              <div className="absolute w-20 h-20 bg-blue-200 rounded-full bottom-4 right-4 opacity-20"></div>
+              <div className="w-64 p-6 bg-white border border-blue-300 rounded-lg shadow-lg">
                 <div className="mb-4 text-center">
-                  <span className="inline-block p-2 rounded-full bg-gray-200">
+                  <span className="inline-block p-2 bg-gray-200 rounded-full">
                     <svg
                       className="w-6 h-6 text-gray-600"
                       fill="none"
@@ -182,37 +246,37 @@ function App() {
                 <input
                   type="text"
                   placeholder="Username"
-                  className="w-full p-2 mb-3 border border-gray-300 rounded-md text-sm"
+                  className="w-full p-2 mb-3 text-sm border border-gray-300 rounded-md"
                 />
                 <input
                   type="password"
                   placeholder="********"
-                  className="w-full p-2 mb-4 border border-gray-300 rounded-md text-sm"
+                  className="w-full p-2 mb-4 text-sm border border-gray-300 rounded-md"
                 />
-                <button className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-150">
+                <button className="w-full py-2 text-white transition duration-150 bg-blue-600 rounded-md hover:bg-blue-700">
                   Login
                 </button>
               </div>
             </div>
-            <div className="absolute top-0 left-1/4 w-px h-24 bg-blue-300"></div>
-            <div className="absolute top-0 right-1/4 w-px h-24 bg-blue-300"></div>
-            <div className="absolute top-20 left-1/4 w-2 h-2 bg-red-500 rounded-full"></div>
-            <div className="absolute top-24 right-1/4 w-2 h-2 bg-green-500 rounded-full"></div>
+            <div className="absolute top-0 w-px h-24 bg-blue-300 left-1/4"></div>
+            <div className="absolute top-0 w-px h-24 bg-blue-300 right-1/4"></div>
+            <div className="absolute w-2 h-2 bg-red-500 rounded-full top-20 left-1/4"></div>
+            <div className="absolute w-2 h-2 bg-green-500 rounded-full top-24 right-1/4"></div>
           </div>
 
           {/* Right Side: Threat Neutralization Features */}
-          <div className="lg:w-1/2 text-center lg:text-left">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+          <div className="text-center lg:w-1/2 lg:text-left">
+            <h2 className="mb-6 text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
               Attachment-Level Threat Neutralization
             </h2>
-            <p className="text-gray-600 mb-8 max-w-xl mx-auto lg:mx-0">
+            <p className="max-w-xl mx-auto mb-8 text-gray-600 lg:mx-0">
               Advanced protection against malicious files and attachments across all communication platforms.
             </p>
 
             <div className="space-y-6">
               {/* Feature Item 1 */}
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 p-2 rounded-full bg-blue-100 text-blue-600">
+                <div className="flex-shrink-0 p-2 text-blue-600 bg-blue-100 rounded-full">
                   <svg
                     className="w-6 h-6"
                     fill="none"
@@ -229,14 +293,14 @@ function App() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">File Interception Engine</h3>
+                  <h3 className="mb-1 text-lg font-semibold">File Interception Engine</h3>
                   <p className="text-gray-600">Detects and captures incoming files in real-time from all sources.</p>
                 </div>
               </div>
 
               {/* Feature Item 2 */}
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 p-2 rounded-full bg-blue-100 text-blue-600">
+                <div className="flex-shrink-0 p-2 text-blue-600 bg-blue-100 rounded-full">
                   <svg
                     className="w-6 h-6"
                     fill="none"
@@ -253,14 +317,14 @@ function App() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Macro/Link Scrubber</h3>
+                  <h3 className="mb-1 text-lg font-semibold">Macro/Link Scrubber</h3>
                   <p className="text-gray-600">Scans and strips dangerous macros and embedded links from documents.</p>
                 </div>
               </div>
 
               {/* Feature Item 3 */}
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 p-2 rounded-full bg-blue-100 text-blue-600">
+                <div className="flex-shrink-0 p-2 text-blue-600 bg-blue-100 rounded-full">
                   <svg
                     className="w-6 h-6"
                     fill="none"
@@ -277,7 +341,7 @@ function App() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Archive Auto-Scanner</h3>
+                  <h3 className="mb-1 text-lg font-semibold">Archive Auto-Scanner</h3>
                   <p className="text-gray-600">Opens ZIP/RAR containers in sandbox and scans internal contents.</p>
                 </div>
               </div>
@@ -287,14 +351,14 @@ function App() {
       </section>
 
       {/* Bottom Section: Learn More */}
-      <section className="bg-blue-600 py-16 sm:py-20 lg:py-24 text-white relative overflow-hidden">
-        <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-between gap-12">
+      <section className="relative py-16 overflow-hidden text-white bg-blue-600 sm:py-20 lg:py-24">
+        <div className="container flex flex-col items-center justify-between gap-12 px-4 mx-auto lg:flex-row">
           {/* Left Side: Dashboard Screenshot */}
-          <div className="lg:w-1/2 flex justify-center">
+          <div className="flex justify-center lg:w-1/2">
             <img
               src="https://placehold.co/600x400/3b82f6/ffffff?text=Dashboard+Screenshot"
               alt="Dashboard Screenshot"
-              className="rounded-lg shadow-xl max-w-full h-auto"
+              className="h-auto max-w-full rounded-lg shadow-xl"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = "https://placehold.co/600x400/cccccc/333333?text=Dashboard";
@@ -303,53 +367,53 @@ function App() {
           </div>
 
           {/* Right Side: Info Cards */}
-          <div className="lg:w-1/2 text-center lg:text-left">
-            <p className="text-blue-200 text-sm mb-2">How PhishZil works</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+          <div className="text-center lg:w-1/2 lg:text-left">
+            <p className="mb-2 text-sm text-blue-200">How PhishZil works</p>
+            <h2 className="mb-6 text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
               Learn more about our
             </h2>
-            <p className="text-blue-100 mb-8 max-w-xl mx-auto lg:mx-0">
+            <p className="max-w-xl mx-auto mb-8 text-blue-100 lg:mx-0">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
               dolore magna aliqua.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                     {/* Info Card 1 - correct Icon */}
-                    <div className="bg-white text-black p-6 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-xl hover:scale-105 transition-transform duration-300">
-                      <div className="p-3  mb-4">
-                        <img src={correctImg} alt="Tomb Icon" className="w-12 h-12 object-contain" />
+                    <div className="flex flex-col items-center p-6 text-center text-black transition-transform duration-300 bg-white rounded-lg shadow-md hover:shadow-xl hover:scale-105">
+                      <div className="p-3 mb-4">
+                        <img src={correctImg} alt="Tomb Icon" className="object-contain w-12 h-12" />
                       </div>
-                      <h3 className="font-semibold text-lg mb-2">Trusted Network</h3>
-                      <p className="text-gray-600 text-sm">
+                      <h3 className="mb-2 text-lg font-semibold">Trusted Network</h3>
+                      <p className="text-sm text-gray-600">
                         A network of trusted partners ensures your data is secure.
                       </p>
                     </div>
 
                     {/* Info Card 2 - profile Icon */}
-                    <div className="bg-white text-black p-6 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-xl hover:scale-105 transition-transform duration-300">
-                      <div className="p-3  mb-4">
-                        <img src={profileImg} alt="Correct Icon" className="w-12 h-12 object-contain" />
+                    <div className="flex flex-col items-center p-6 text-center text-black transition-transform duration-300 bg-white rounded-lg shadow-md hover:shadow-xl hover:scale-105">
+                      <div className="p-3 mb-4">
+                        <img src={profileImg} alt="Correct Icon" className="object-contain w-12 h-12" />
                       </div>
-                      <h3 className="font-semibold text-lg mb-2">Personalized Legal</h3>
-                      <p className="text-gray-600 text-sm">
+                      <h3 className="mb-2 text-lg font-semibold">Personalized Legal</h3>
+                      <p className="text-sm text-gray-600">
                         Our attorneys will work closely with you to develop.
                       </p>
                     </div>
 
                     {/* Info Card 3 - tomb Icon */}
-                    <div className="bg-white text-black p-6 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-xl hover:scale-105 transition-transform duration-300">
-                      <div className="p-3  mb-4">
-                        <img src={tombImg} alt="Profile Icon" className="w-12 h-12 object-contain" />
+                    <div className="flex flex-col items-center p-6 text-center text-black transition-transform duration-300 bg-white rounded-lg shadow-md hover:shadow-xl hover:scale-105">
+                      <div className="p-3 mb-4">
+                        <img src={tombImg} alt="Profile Icon" className="object-contain w-12 h-12" />
                       </div>
-                      <h3 className="font-semibold text-lg mb-2">Client Satisfaction</h3>
-                      <p className="text-gray-600 text-sm">
+                      <h3 className="mb-2 text-lg font-semibold">Client Satisfaction</h3>
+                      <p className="text-sm text-gray-600">
                         We're dedicated to going above and beyond to ensure.
                       </p>
                     </div>
                   </div>
 
 
-            <button className="mt-10 py-3 px-8 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition duration-150 ease-in-out">
+            <button className="px-8 py-3 mt-10 font-semibold text-blue-600 transition duration-150 ease-in-out bg-white rounded-lg shadow-md hover:bg-gray-100">
               Learn More
             </button>
           </div>
@@ -360,13 +424,13 @@ function App() {
       
 
       {/* Platform Support */}
-<section className="py-20 px-10 text-center bg-gray-50">
-  <h3 className="text-3xl font-bold mb-6">Universal Platform Support</h3>
-  <p className="text-gray-600 mb-10">
+<section className="px-10 py-20 text-center bg-gray-50">
+  <h3 className="mb-6 text-3xl font-bold">Universal Platform Support</h3>
+  <p className="mb-10 text-gray-600">
     Deploy Phishzil™ across all your devices and platforms with seamless integration.
   </p>
 
-  <div className="grid grid-cols-2 md:grid-cols-5 gap-6 max-w-6xl mx-auto">
+  <div className="grid max-w-6xl grid-cols-2 gap-6 mx-auto md:grid-cols-5">
     {[
       { img: phoneImg, label: "Android", desc: "Instant permissions" },
       { img: laptopImg, label: "Windows", desc: "Seamless workstation integration" },
@@ -376,15 +440,15 @@ function App() {
     ].map((item, i) => (
       <div
         key={i}
-        className="bg-white border-2 border-blue-500 rounded-lg p-8 h-80 flex flex-col items-center justify-center shadow hover:shadow-xl hover:scale-105 transition-transform duration-300"
+        className="flex flex-col items-center justify-center p-8 transition-transform duration-300 bg-white border-2 border-blue-500 rounded-lg shadow h-80 hover:shadow-xl hover:scale-105"
       >
         <img
           src={item.img}
           alt={item.label}
-          className="w-20 h-20 md:w-28 md:h-28 object-contain mb-4"
+          className="object-contain w-20 h-20 mb-4 md:w-28 md:h-28"
         />
-        <h4 className="font-semibold text-lg text-gray-800">{item.label}</h4>
-        <p className="text-sm text-gray-600 mt-2">{item.desc}</p>
+        <h4 className="text-lg font-semibold text-gray-800">{item.label}</h4>
+        <p className="mt-2 text-sm text-gray-600">{item.desc}</p>
       </div>
     ))}
   </div>
@@ -392,35 +456,35 @@ function App() {
 
 
       {/* Pricing */}
-<section id="pricing" className="bg-white py-20 px-6 md:px-16">
-  <div className="text-center mb-12">
-    <h3 className="text-3xl font-bold text-gray-800 mb-4">
+<section id="pricing" className="px-6 py-20 bg-white md:px-16">
+  <div className="mb-12 text-center">
+    <h3 className="mb-4 text-3xl font-bold text-gray-800">
       The right plan can change <br />
       <span className="text-blue-600">your work life</span>
     </h3>
-    <p className="text-gray-600 mb-6">Choose a plan that’s right for you</p>
+    <p className="mb-6 text-gray-600">Choose a plan that’s right for you</p>
 
     {/* Billing Toggle */}
-    <div className="flex justify-center items-center space-x-6 mb-10">
+    <div className="flex items-center justify-center mb-10 space-x-6">
       <label className="flex items-center space-x-2 cursor-pointer">
-        <input type="radio" name="billing" defaultChecked className="form-radio text-blue-600" />
-        <span className="text-gray-700 font-medium">Monthly Plan</span>
+        <input type="radio" name="billing" defaultChecked className="text-blue-600 form-radio" />
+        <span className="font-medium text-gray-700">Monthly Plan</span>
       </label>
       <label className="flex items-center space-x-2 cursor-pointer">
-        <input type="radio" name="billing" className="form-radio text-blue-600" />
-        <span className="text-gray-700 font-medium">
-          Yearly Plan <span className="text-blue-600 font-semibold">(Save 25%)</span>
+        <input type="radio" name="billing" className="text-blue-600 form-radio" />
+        <span className="font-medium text-gray-700">
+          Yearly Plan <span className="font-semibold text-blue-600">(Save 25%)</span>
         </span>
       </label>
     </div>
   </div>
 
-  <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-    <div className="border rounded-2xl p-8 shadow hover:shadow-lg">
-      <h4 className="text-xl font-semibold mb-4">Personal</h4>
-      <p className="text-4xl font-bold mb-2">$9.99</p>
-      <p className="text-gray-500 mb-6">/month</p>
-      <button className="w-full bg-blue-600 text-white py-2 rounded-lg mb-6">Get Started Now</button>
+  <div className="grid max-w-6xl gap-8 mx-auto md:grid-cols-3">
+    <div className="p-8 border shadow rounded-2xl hover:shadow-lg">
+      <h4 className="mb-4 text-xl font-semibold">Personal</h4>
+      <p className="mb-2 text-4xl font-bold">$9.99</p>
+      <p className="mb-6 text-gray-500">/month</p>
+      <button className="w-full py-2 mb-6 text-white bg-blue-600 rounded-lg">Get Started Now</button>
       <ul className="space-y-3 text-gray-600">
         <li>✔️ Visual Phish Detection</li>
         <li>✔️ Basic Link Scanning</li>
@@ -430,11 +494,11 @@ function App() {
       </ul>
     </div>
 
-    <div className="border rounded-2xl p-8 shadow-lg bg-blue-600 text-white scale-105">
-      <h4 className="text-xl font-semibold mb-4">Family</h4>
-      <p className="text-4xl font-bold mb-2">$19.99</p>
+    <div className="p-8 text-white scale-105 bg-blue-600 border shadow-lg rounded-2xl">
+      <h4 className="mb-4 text-xl font-semibold">Family</h4>
+      <p className="mb-2 text-4xl font-bold">$19.99</p>
       <p className="mb-6">/month</p>
-      <button className="w-full bg-white text-blue-600 py-2 rounded-lg mb-6 font-semibold">Get Started Now</button>
+      <button className="w-full py-2 mb-6 font-semibold text-blue-600 bg-white rounded-lg">Get Started Now</button>
       <ul className="space-y-3">
         <li>✔️ 5 User Accounts</li>
         <li>✔️ Social Media Scanning</li>
@@ -444,11 +508,11 @@ function App() {
       </ul>
     </div>
 
-    <div className="border rounded-2xl p-8 shadow hover:shadow-lg">
-      <h4 className="text-xl font-semibold mb-4">Enterprise</h4>
-      <p className="text-4xl font-bold mb-2">$49.99</p>
-      <p className="text-gray-500 mb-6">/month</p>
-      <button className="w-full bg-blue-600 text-white py-2 rounded-lg mb-6">Get Started Now</button>
+    <div className="p-8 border shadow rounded-2xl hover:shadow-lg">
+      <h4 className="mb-4 text-xl font-semibold">Enterprise</h4>
+      <p className="mb-2 text-4xl font-bold">$49.99</p>
+      <p className="mb-6 text-gray-500">/month</p>
+      <button className="w-full py-2 mb-6 text-white bg-blue-600 rounded-lg">Get Started Now</button>
       <ul className="space-y-3 text-gray-600">
         <li>✔️ Unlimited Endpoints</li>
         <li>✔️ AI Detection</li>
@@ -465,12 +529,12 @@ function App() {
 
 
     {/* footer */}
-    <footer className="bg-gray-900 text-gray-300 py-12 px-6 md:px-16">
-      <div className="grid md:grid-cols-4 gap-10 max-w-6xl mx-auto">
+    <footer className="px-6 py-12 text-gray-300 bg-gray-900 md:px-16">
+      <div className="grid max-w-6xl gap-10 mx-auto md:grid-cols-4">
         {/* About */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">About Phishzil</h3>
-          <p className="text-sm mb-4">
+          <h3 className="mb-4 text-lg font-semibold text-white">About Phishzil</h3>
+          <p className="mb-4 text-sm">
             Protecting businesses and individuals from phishing threats with real-time AI‑powered solutions.
           </p>
           <div className="flex space-x-4">
@@ -484,7 +548,7 @@ function App() {
 
         {/* Company */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Company</h3>
+          <h3 className="mb-4 text-lg font-semibold text-white">Company</h3>
           <ul className="space-y-2 text-sm">
             <li><Link to="/about" className="hover:text-white">About</Link></li>
             <li><Link to="/careers" className="hover:text-white">Careers</Link></li>
@@ -495,7 +559,7 @@ function App() {
 
         {/* Help */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Help</h3>
+          <h3 className="mb-4 text-lg font-semibold text-white">Help</h3>
           <ul className="space-y-2 text-sm">
             <li><Link to="/support" className="hover:text-white">Support</Link></li>
             <li><Link to="/docs" className="hover:text-white">Documentation</Link></li>
@@ -506,7 +570,7 @@ function App() {
 
         {/* Resources */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Resources</h3>
+          <h3 className="mb-4 text-lg font-semibold text-white">Resources</h3>
           <ul className="space-y-2 text-sm">
             <li><Link to="/blog" className="hover:text-white">Blog</Link></li>
             <li><Link to="/whitepapers" className="hover:text-white">Whitepapers</Link></li>
@@ -517,7 +581,7 @@ function App() {
       </div>
 
       {/* Bottom Note */}
-      <div className="text-center mt-10 text-gray-500 text-sm">
+      <div className="mt-10 text-sm text-center text-gray-500">
         © {new Date().getFullYear()} Phishzil™. All rights reserved.
       </div>
     </footer>

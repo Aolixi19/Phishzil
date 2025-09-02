@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from "react-router-dom"; //  Added useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import Topbar from "../../types/Topbar";
 import Sidebar from "../../types/Sidebar";
 
 const Urls = () => {
   const [urlToScan, setUrlToScan] = useState('');
-
-  const navigate = useNavigate(); //  Added navigate hook
+  const navigate = useNavigate();
 
   // Mock data for the URL scans table
   const mockUrlScans = [
@@ -66,13 +65,10 @@ const Urls = () => {
     if (urlToScan.trim()) {
       console.log('Scanning URL:', urlToScan);
 
-      //  Navigate to phlink.jsx and start Stage 1 at 0%
+      // Navigate to phlink.jsx with the correct property name
       navigate("/phlink", { 
         state: { 
-          url: urlToScan,
-          stage1Progress: 0, // Start Stage 1 animation from 0%
-          stage2Progress: 0, // Stage 2 initial state
-          stage3Progress: 0  // Stage 3 initial state
+          scanUrl: urlToScan // Correct property name that matches Phlink.jsx expectation
         } 
       });
 
@@ -85,21 +81,23 @@ const Urls = () => {
   return (
     <div className="flex min-h-screen bg-gray-100 font-inter">
       {/* Sidebar */}
-        <Sidebar />
+      <Sidebar />
 
       {/* Main Content Area */}
       <main className="flex-1 p-4 lg:ml-64 sm:p-6 lg:p-8">
         {/* Top Bar */}
-         <Topbar />
+        <Topbar />
 
         {/* Breadcrumbs */}
         <nav className="mb-6 text-sm text-gray-500">
           <ol className="inline-flex p-0 list-none">
             <li className="flex items-center">
               <Link to="/" className="text-blue-600 hover:underline">Home</Link>
+              <svg className="w-3 h-3 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+              </svg>
             </li>
-
-            <li  className="ml-2">URL Scanner</li>
+            <li className="text-gray-400">URL Scanner</li>
           </ol>
         </nav>
 
@@ -113,13 +111,17 @@ const Urls = () => {
               </p>
             </div>
             <button className="p-2 text-blue-500 transition duration-150 rounded-full hover:bg-blue-50">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9.228a4.5 4.5 0 116.364 0M12 14v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9.228a4.5 4.5 0 116.364 0M12 14v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
             </button>
           </div>
 
           <div className="flex flex-col items-center justify-center mb-6 space-y-4 sm:flex-row sm:justify-start sm:space-y-0 sm:space-x-4">
             <button className="flex items-center px-4 py-2 space-x-2 text-blue-600 transition duration-150 bg-blue-100 rounded-lg hover:bg-blue-200">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-.758l3.67-3.67m-9.106 10.61a4 4 0 010-5.656l4-4a4 4 0 015.656 0"></path></svg>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-.758l3.67-3.67m-9.106 10.61a4 4 0 010-5.656l4-4a4 4 0 015.656 0"></path>
+              </svg>
               <span>Phishing Link (URL) Checker</span>
             </button>
             <span className="text-sm text-gray-500">240 Links Scanned</span>
@@ -133,6 +135,11 @@ const Urls = () => {
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={urlToScan}
               onChange={(e) => setUrlToScan(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleScanUrl();
+                }
+              }}
             />
             <button
               onClick={handleScanUrl}
@@ -154,7 +161,9 @@ const Urls = () => {
                 <option>Last 90 Days</option>
               </select>
               <button className="p-2 text-gray-600 transition duration-150 rounded-md hover:bg-gray-100">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                </svg>
               </button>
             </div>
           </div>
