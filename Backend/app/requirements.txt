@@ -12,3 +12,12 @@ tzdata==2025.2
 google-auth
 django-allauth
 social-auth-app-django
+requests
+python-whois
+dnspython==2.6.1
+python-magic
+celery
+redis
+channels
+channels-redis
+

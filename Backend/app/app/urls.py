@@ -20,6 +20,13 @@ from django.urls import path,include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/user/", include("user.urls")),
+    path("api/detect/", include("Phishing_Detection.urls")),
+    path('api/protection/', include('threat_protection.urls')),  
+    path('api/browser/', include('browser_extension.urls')),
+    path('api/mobile/', include('mobile_protection.urls')),
+    path('api/admin/', include('admin_dashboard.urls')),
+    
+    
     path('accounts/', include('allauth.urls')),
 
 ]

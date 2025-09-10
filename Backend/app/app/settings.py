@@ -47,6 +47,12 @@ INSTALLED_APPS = [
     'django.contrib.sites',  
 
     'user',  
+    'Phishing_Detection',
+    'threat_protection',
+    'browser_extension',
+    'mobile_protection',
+    'admin_dashboard',
+    'channels',
 
     # JWT
     'rest_framework',
@@ -63,6 +69,21 @@ INSTALLED_APPS = [
 
 FRONTEND_URL = "https://your-frontend.com"
 FRONTEND_RESET_PATH = "/reset-password"  # final link: https://your-frontend.com/reset-password/<uid>/<token>/
+
+# Celery configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# Cache configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
 
 
 REST_FRAMEWORK = {
