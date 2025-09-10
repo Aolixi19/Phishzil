@@ -1,5 +1,3 @@
-
-
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/home";
 import Register from "./pages/auths/register";
@@ -14,6 +12,7 @@ import Reports from "./pages/urls/Reports";
 import Settings from "./layout/Settings";
 import Phlink from "./process_1/phLink.jsx"; 
 import PhEmail from "./process_1/phEmail.jsx";
+import PhFile from "./process_1/phFile.jsx";
 
 function App() {
   return (
@@ -32,9 +31,10 @@ function App() {
       <Route path="/reports" element={<Reports />} />
       <Route path="/settings" element={<Settings />} />
 
-      {/* Disarming Process Page */}
+      {/* Disarming Process Pages */}
       <Route path="/phlink" element={<Phlink />} /> 
       <Route path="/ph-email" element={<PhEmail />} />
+        <Route path="/ph-file" element={<PhFile />} />
       
     </Routes>
   );
